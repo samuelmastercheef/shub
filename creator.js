@@ -19,8 +19,8 @@ module.exports = function init({ WS, json, body }) {
   const has = (bin) => spawnSync('which', [bin]).status === 0;
 
   // ---- cài đặt (token Socin lưu mode 600, không bao giờ trả về client) ----
-  const getSet = () => ({ imageApi: '', voice: 'Linh', imageSteps: 6, imageCfg: 2, imageStyle: 'hand-drawn cartoon illustration, flat 2D, simple shapes, clean lines, vertical composition', engine: 'cit', citUrl: 'http://127.0.0.1:8001', citVoice: '', socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) });
-  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, imageSteps: s.imageSteps, imageCfg: s.imageCfg, imageStyle: s.imageStyle, voice: s.voice, engine: s.engine, citUrl: s.citUrl, citVoice: s.citVoice, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
+  const getSet = () => { const o = { imageApi: '', voice: 'Linh', imageSteps: 6, imageCfg: 2, imageStyle: 'hand-drawn cartoon illustration, flat 2D, simple shapes, clean lines, vertical composition', engine: 'cit', citUrl: 'http://127.0.0.1:8001', citVoice: '', imageSource: '', videoEngine: 'ffmpeg', gemini: { key: '', imageModel: 'gemini-2.5-flash-image', videoModel: 'gemini-omni-1.1-flash' }, socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) }; o.gemini = { key: '', imageModel: 'gemini-2.5-flash-image', videoModel: 'gemini-omni-1.1-flash', ...(o.gemini || {}) }; return o; };
+  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, imageSteps: s.imageSteps, imageCfg: s.imageCfg, imageStyle: s.imageStyle, voice: s.voice, engine: s.engine, citUrl: s.citUrl, citVoice: s.citVoice, imageSource: s.imageSource || (s.imageApi ? 'api' : 'card'), videoEngine: s.videoEngine, gemini: { hasKey: !!s.gemini.key, imageModel: s.gemini.imageModel, videoModel: s.gemini.videoModel }, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { claude: has(CLAUDE()), ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
 
   // ---- Claude ----
   const CLAUDE = () => process.env.SHUB_CLAUDE_BIN || 'claude';
@@ -51,6 +51,51 @@ module.exports = function init({ WS, json, body }) {
     }
     bad('Server ảnh từ chối yêu cầu (' + last + '). Thử giảm số bước hoặc kiểm tra model trong Draw Things.');
   }
+  // ---- Gemini (ảnh + video) và Claude (vẽ SVG) ----
+  const GB = () => (process.env.SHUB_GEMINI_BASE || 'https://generativelanguage.googleapis.com').replace(/\/$/, '');
+  const gErr = async (r, what) => { let m = ''; try { const j = await r.json(); m = (j.error && j.error.message) || ''; } catch {} if (r.status === 401 || r.status === 403) bad('Gemini từ chối khóa API (sai khóa hoặc chưa bật quyền cho model này)'); if (r.status === 429) bad('Gemini giới hạn lượt dùng (gói miễn phí hay bị 429), thử lại sau hoặc dùng nguồn khác'); if (r.status === 400 && /safety|block|policy|prohibit/i.test(m)) bad('Gemini chặn mô tả cảnh này (bộ lọc an toàn): ' + m.slice(0, 160)); bad(`${what} lỗi HTTP ${r.status}${m ? ': ' + m.slice(0, 200) : ''}`); };
+  async function geminiImage(set, prompt, p, n) {
+    if (!set.gemini.key) bad('Chưa nhập khóa Gemini (tab Kết nối → Kết nối AI)');
+    const parts = [], ref = n > 1 && p.images['1'] ? path.join(outDir(p.id), p.images['1']) : null;
+    if (ref && fs.existsSync(ref)) { const buf = fs.readFileSync(ref); parts.push({ inlineData: { mimeType: buf[0] === 0x89 ? 'image/png' : 'image/jpeg', data: buf.toString('base64') } }); parts.push({ text: 'Keep exactly the same main character, face, clothing and art style as in the reference image. Draw this new scene: ' + prompt + '. Vertical 9:16 composition. No text, no letters, no watermark.' }); }
+    else parts.push({ text: prompt + '. Vertical 9:16 composition. No text, no letters, no watermark.' });
+    const r = await fetch(`${GB()}/v1beta/models/${set.gemini.imageModel}:generateContent`, { method: 'POST', headers: { 'x-goog-api-key': set.gemini.key, 'content-type': 'application/json' }, body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '9:16' } } }), signal: AbortSignal.timeout(180000) }).catch(() => bad('Không kết nối được Gemini (kiểm tra mạng)'));
+    if (!r.ok) await gErr(r, 'Gemini tạo ảnh');
+    const j = await r.json().catch(() => null); const pp = (((j || {}).candidates || [])[0] || {}).content; const items = (pp && pp.parts) || [];
+    const img = items.map((x) => x.inlineData || x.inline_data).find((x) => x && x.data);
+    if (!img) bad('Gemini không trả ảnh' + (items.find((x) => x.text) ? ': ' + String(items.find((x) => x.text).text).slice(0, 160) : ' (có thể bị bộ lọc an toàn chặn)'));
+    return Buffer.from(img.data, 'base64');
+  }
+  async function claudeSvgPng(p, sc, out) {
+    let pw; try { pw = require('playwright'); } catch { bad('Cần Playwright để dựng ảnh SVG: cd ~/shub && npm i playwright && npx playwright install chromium'); }
+    const txt = await ask(`Bạn là họa sĩ vector. Vẽ MỘT ảnh minh họa phẳng (flat vector) dạng SVG, viewBox="0 0 1080 1920", có nền kín (không trong suốt), nhân vật và bối cảnh rõ ràng, màu tươi, hình khối lớn, đơn giản. KHÔNG có chữ/văn bản, không <script>, không ảnh ngoài, không font. Nhân vật (giữ nhất quán): ${p.script.character || 'một nhân vật đơn giản'}. Phong cách: ${p.script.style || 'flat 2D cartoon'}. Cảnh: ${sc.imagePrompt || sc.visual || sc.narration}. Trả về DUY NHẤT thẻ <svg ...>...</svg>.`, 240000);
+    const m = /<svg[\s\S]*<\/svg>/i.exec(txt); if (!m) bad('Claude không trả SVG hợp lệ, thử lại');
+    const svg = m[0]; if (/<script|<foreignObject|\son\w+\s*=|javascript:|<iframe|<image|<use[^>]+href\s*=\s*["'](?!#)|href\s*=\s*["']https?:/i.test(svg)) bad('SVG có thành phần không an toàn, thử lại');
+    const br = await pw.chromium.launch(); try { const cx = await br.newContext({ javaScriptEnabled: false, viewport: { width: 1080, height: 1920 } }); const pg = await cx.newPage(); await pg.setContent(`<body style="margin:0;width:1080px;height:1920px;overflow:hidden"><div style="width:1080px;height:1920px">${svg.replace(/<svg/i, '<svg width="1080" height="1920" preserveAspectRatio="xMidYMid slice"')}</div></body>`); await pg.screenshot({ path: out }); } finally { await br.close(); }
+  }
+  const srcOf = (set) => set.imageSource || (set.imageApi ? 'api' : 'card');
+  async function genImage(p, n, source) {
+    const sc = p.script.scenes[n - 1], dir = outDir(p.id); fs.mkdirSync(dir, { recursive: true }); const file = `scene-${n}.png`, set = getSet(), out = path.join(dir, file);
+    const prompt = [p.script.character, p.script.style, sc.imagePrompt || sc.visual].filter(Boolean).join(', ');
+    if (source === 'api') { if (!set.imageApi) bad('Chưa cấu hình server ảnh (vd: Draw Things / Stable Diffusion WebUI)'); fs.writeFileSync(out, await imgApi(set, prompt, 576, 1024, projSeed(p))); }
+    else if (source === 'gemini') fs.writeFileSync(out, await geminiImage(set, prompt, p, n));
+    else if (source === 'claude') await claudeSvgPng(p, sc, out);
+    else await cardPng(iconOf(sc), n, p.script.scenes.length, out);
+    p.images[String(n)] = file; p.step = 'images'; save(p);
+  }
+  // clip video từ Gemini (text-to-video), dùng thay ảnh động của ffmpeg
+  async function geminiClip(set, prompt, out, signal) {
+    const key = set.gemini.key, h = { 'x-goog-api-key': key, 'content-type': 'application/json' };
+    const r = await fetch(`${GB()}/v1beta/interactions`, { method: 'POST', headers: h, body: JSON.stringify({ model: set.gemini.videoModel, input: prompt, response_format: { type: 'video', aspect_ratio: '9:16', resolution: '720p', delivery: 'uri' } }), signal: AbortSignal.any([signal, AbortSignal.timeout(15 * 60000)]) }).catch((e) => { if (signal.aborted) throw e; throw new Error('Không kết nối được Gemini'); });
+    if (!r.ok) await gErr(r, 'Gemini tạo video');
+    const j = await r.json().catch(() => ({})); const item = (j.steps || []).filter((x) => x.type === 'model_output').flatMap((x) => x.content || []).find((c) => c.type === 'video');
+    if (!item) throw new Error('Gemini không trả video (có thể bị bộ lọc an toàn chặn)');
+    if (item.data) { fs.writeFileSync(out, Buffer.from(item.data, 'base64')); return; }
+    if (!item.uri) throw new Error('Gemini không trả đường dẫn video');
+    const uri = String(item.uri), meta = uri.replace(/:download.*$/, '');
+    for (let i = 0; i < 120; i++) { const m = await fetch(meta, { headers: h, signal }).then((x) => x.json()).catch(() => ({})); if (m.state === 'FAILED') throw new Error('Gemini báo tạo video thất bại'); if (!m.state || m.state === 'ACTIVE') break; await new Promise((rs) => setTimeout(rs, 5000)); }
+    const d = await fetch(uri, { headers: { 'x-goog-api-key': key }, signal }); if (!d.ok) throw new Error('Tải video từ Gemini lỗi HTTP ' + d.status); fs.writeFileSync(out, Buffer.from(await d.arrayBuffer()));
+  }
   const iconOf = (sc) => { const m = /\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*/u.exec((sc.icon || '') + (sc.text || '') + (sc.narration || '')); return m ? m[0] : '✨'; };
   async function cardPng(icon, idx, total, file) {
     let pw; try { pw = require('playwright'); } catch { bad('Cần Playwright để vẽ thẻ ảnh: chạy "npm i playwright && npx playwright install chromium" trong ~/shub, hoặc cấu hình server ảnh.'); }
@@ -72,7 +117,9 @@ module.exports = function init({ WS, json, body }) {
 
   // ---- video ----
   const FONT = () => ['/System/Library/Fonts/Supplemental/Arial Unicode.ttf', '/Library/Fonts/Arial Unicode.ttf', '/System/Library/Fonts/Helvetica.ttc', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'].find((f) => fs.existsSync(f));
-  const run = (cmd, args, ms = 600000) => new Promise((resolve, reject) => { let e = ''; const p = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] }); const t = setTimeout(() => { p.kill('SIGKILL'); reject(new Error(cmd + ' quá thời gian')); }, ms); p.stderr.on('data', (d) => (e = (e + d).slice(-1500))); p.on('error', () => { clearTimeout(t); reject(new Error('Không chạy được ' + cmd + (cmd === 'ffmpeg' ? ' (cài: brew install ffmpeg)' : ''))); }); p.on('close', (c) => { clearTimeout(t); c === 0 ? resolve() : reject(new Error(cmd + ' lỗi: ' + e.slice(-400))); }); });
+  const runBase = (cmd, args, ms = 600000, ctx) => new Promise((resolve, reject) => { let e = ''; const p = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'] }); if (ctx) ctx.children.add(p); const t = setTimeout(() => { p.kill('SIGKILL'); reject(new Error(cmd + ' quá thời gian')); }, ms); p.stderr.on('data', (d) => (e = (e + d).slice(-1500))); p.on('error', () => { clearTimeout(t); reject(new Error('Không chạy được ' + cmd + (cmd === 'ffmpeg' ? ' (cài: brew install ffmpeg)' : ''))); }); p.on('close', (c) => { clearTimeout(t); if (ctx) { ctx.children.delete(p); if (ctx.cancelled) return reject(Object.assign(new Error('Đã dừng'), { cancelled: true })); } c === 0 ? resolve() : reject(new Error(cmd + ' lỗi: ' + e.slice(-400))); }); });
+  const run = (cmd, args, ms) => runBase(cmd, args, ms);
+  const jobCtx = new Map();
   const dur = (f) => { const r = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }); return parseFloat(r.stdout) || 0; };
   const wrap = (t, n = 26) => { const w = String(t).split(/\s+/), L = []; let c = ''; w.forEach((x) => { if ((c + ' ' + x).trim().length > n) { L.push(c); c = x; } else c = (c + ' ' + x).trim(); }); if (c) L.push(c); return L.join('\n'); };
   const srtT = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${x.toFixed(3).replace('.', ',').padStart(6, '0')}`; };
@@ -99,25 +146,32 @@ module.exports = function init({ WS, json, body }) {
     const br = await pw.chromium.launch(); try { const pg = await br.newPage({ viewport: { width: 1080, height: 1920 } }); await pg.setContent(html); await pg.waitForTimeout(200); await pg.screenshot({ path: file, omitBackground: true }); } finally { await br.close(); }
   }
   async function render(id, opt) {
+    const ctx = { cancelled: false, children: new Set(), ac: new AbortController() }; jobCtx.set(id, ctx); const run = (c, a, ms) => runBase(c, a, ms, ctx); const chk = () => { if (ctx.cancelled) throw Object.assign(new Error('Đã dừng'), { cancelled: true }); };
+    try { return await renderInner(id, opt, run, chk, ctx); } finally { jobCtx.delete(id); try { fs.rmSync(path.join(outDir(id), '.tmp'), { recursive: true, force: true }); } catch {} }
+  }
+  async function renderInner(id, opt, run, chk, ctx) {
     const p = load(id), set = getSet(), dir = outDir(id), tmp = path.join(dir, '.tmp'); fs.mkdirSync(tmp, { recursive: true });
     const scenes = (p.script && p.script.scenes) || []; if (!scenes.length) throw new Error('Chưa có kịch bản');
     const citOk = opt.voice && set.engine === 'cit' && (await citHealth()).ok; let usedVoice = ''; const segs = []; let t = 0; const srt = []; const wantCap = opt.captions !== false; const overlay = wantCap && hasPlaywright(); const dt = wantCap && !overlay && hasDrawtext(); const font = dt ? FONT() : null; let warn = ''; if (wantCap && !dt && !overlay) warn = 'ffmpeg thiếu bộ lọc drawtext và chưa có Playwright nên video không có chữ (vẫn có file .srt). Cài: cd ~/shub && npm i playwright && npx playwright install chromium';
-    const hookTxt0 = (k) => k === 0 && p.script && p.script.hook;
+    const hookTxt0 = (k) => k === 0 && p.script && p.script.hook; const eng = opt.engine === 'gemini' && set.gemini.key ? 'gemini' : 'ffmpeg'; let gOk = 0, gFail = 0, gMsg = '';
     for (let i = 0; i < scenes.length; i++) {
+      chk(); if (process.env.SHUB_NO_TIMER && opt.delay) await new Promise((r) => setTimeout(r, Math.min(5000, opt.delay)));
       const img = p.images[String(i + 1)]; if (!img) throw new Error(`Cảnh ${i + 1} chưa có ảnh`);
       let sec = Math.min(30, Math.max(2, Number(scenes[i].seconds) || 4)), audio = null;
       if (opt.voice && citOk && scenes[i].narration) { const a = path.join(tmp, `a${i}.mp3`); try { await citSpeak(scenes[i].narration, set.citVoice, a); audio = a; sec = Math.max(sec, dur(a) + 0.5); usedVoice = 'CIT'; } catch { audio = null; } }
       if (!audio && opt.voice && has('say') && scenes[i].narration) { const a = path.join(tmp, `a${i}.aiff`); try { await run('say', ['-v', set.voice, '-o', a, scenes[i].narration], 120000); audio = a; usedVoice = usedVoice || 'macOS'; sec = Math.max(sec, dur(a) + 0.5); } catch { audio = null; } }
-      const seg = path.join(tmp, `s${i}.mp4`), frames = Math.round(sec * 30);
-      let vf = `scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='min(zoom+0.0006,1.12)':d=${frames}:s=1080x1920:fps=30,format=yuv420p`;
+      const seg = path.join(tmp, `s${i}.mp4`), frames = Math.round(sec * 30); let clip = null;
+      if (eng === 'gemini') { clip = path.join(tmp, `g${i}.mp4`); try { await geminiClip(set, [p.script.character, p.script.style, scenes[i].imagePrompt || scenes[i].visual || scenes[i].narration, 'Vertical 9:16, cinematic, natural camera motion. No speech, no subtitles, no text, no logo.'].filter(Boolean).join('. '), clip, ctx.ac.signal); gOk++; } catch (e) { chk(); clip = null; gFail++; gMsg = String(e.message).slice(0, 160); } }
+      let vf = clip ? `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,tpad=stop_mode=clone:stop_duration=${sec},format=yuv420p` : `scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='min(zoom+0.0006,1.12)':d=${frames}:s=1080x1920:fps=30,format=yuv420p`;
       const cap = scenes[i].text || scenes[i].narration;
       if (font && hookTxt0(i) ) { const hf = path.join(tmp, `h${i}.txt`); fs.writeFileSync(hf, wrap(p.script.hook, 20)); vf += `,drawtext=fontfile='${font.replace(/'/g, '')}':textfile='${hf}':fontsize=72:fontcolor=0xFFD34D:box=1:boxcolor=black@0.55:boxborderw=20:line_spacing=10:x=(w-text_w)/2:y=h*0.10`; }
       if (font && cap) { const tf = path.join(tmp, `t${i}.txt`); fs.writeFileSync(tf, wrap(cap)); vf += `,drawtext=fontfile='${font.replace(/'/g, '')}':textfile='${tf}':fontsize=54:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=22:line_spacing=10:x=(w-text_w)/2:y=h*0.72`; }
-      const args = ['-y', '-loop', '1', '-t', String(sec), '-i', path.join(dir, img)];
+      const args = clip ? ['-y', '-i', clip] : ['-y', '-loop', '1', '-t', String(sec), '-i', path.join(dir, img)];
       if (audio) args.push('-i', audio); else args.push('-f', 'lavfi', '-t', String(sec), '-i', 'anullsrc=r=44100:cl=mono');
       const hookTxt = i === 0 && opt.captions !== false ? ((p.script && p.script.hook) || '') : '';
       if (overlay && (cap || hookTxt)) { const cp = path.join(tmp, `c${i}.png`); await captionPng({ hook: hookTxt ? wrap(hookTxt, 20) : '', cap: cap ? wrap(cap) : '' }, cp); args.push('-loop', '1', '-t', String(sec), '-i', cp, '-filter_complex', `[0:v]${vf}[v];[2:v]format=rgba[c];[v][c]overlay=0:0,format=yuv420p[o]`, '-map', '[o]', '-map', '1:a'); }
-      else args.push('-vf', vf);
+      else { args.push('-vf', vf); if (clip) args.push('-map', '0:v', '-map', '1:a'); }
+      if (clip) args.push('-t', String(sec));
       args.push('-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '1', '-shortest', seg);
       await run('ffmpeg', args); segs.push(seg);
       srt.push(`${i + 1}\n${srtT(t)} --> ${srtT(t + sec)}\n${scenes[i].narration || cap || ''}\n`); t += sec;
@@ -126,7 +180,7 @@ module.exports = function init({ WS, json, body }) {
     const out = path.join(dir, 'video.mp4'); await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(tmp, 'list.txt'), '-c', 'copy', '-movflags', '+faststart', out]);
     try { const cv = (p.script && p.script.hook) ? p.script.hook : ''; if (overlay && cv) { const cp = path.join(tmp, 'cover-ov.png'); await captionPng({ hook: wrap(cv, 20), cap: '' }, cp); await run('ffmpeg', ['-y', '-i', path.join(dir, p.images['1']), '-i', cp, '-filter_complex', '[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920[b];[b][1:v]overlay=0:0', '-frames:v', '1', path.join(dir, 'cover.png')]); } } catch {}
     fs.writeFileSync(path.join(dir, 'video.srt'), srt.join('\n')); fs.rmSync(tmp, { recursive: true, force: true });
-    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font || overlay, warn: warn || undefined, voice: !!opt.voice && !!usedVoice, voiceEngine: usedVoice || null };
+    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font || overlay, warn: [warn, gFail ? `Gemini lỗi ở ${gFail} cảnh (đã dùng ảnh động thay thế): ${gMsg}` : ''].filter(Boolean).join(' · ') || undefined, videoSource: eng === 'gemini' ? `Gemini ${gOk}/${scenes.length} cảnh` : 'ảnh động ffmpeg', voice: !!opt.voice && !!usedVoice, voiceEngine: usedVoice || null };
   }
 
   // ---- đăng: adapter ----
@@ -157,7 +211,7 @@ module.exports = function init({ WS, json, body }) {
   }
   if (!process.env.SHUB_NO_TIMER) setInterval(tick, 60000).unref();
 
-  const view = (p) => ({ ...p, images: p.images || {}, hasVideo: fs.existsSync(path.join(outDir(p.id), 'video.mp4')) });
+  const view = (p) => ({ ...p, video: p.video && p.video.status === 'rendering' && !jobs.has(p.id) ? { status: 'error', error: 'Lần dựng trước bị gián đoạn (server khởi động lại). Bấm dựng lại.' } : p.video, images: p.images || {}, hasVideo: fs.existsSync(path.join(outDir(p.id), 'video.mp4')) });
   const clean = (s, n) => String(s ?? '').trim().slice(0, n);
   const chans = (a) => (Array.isArray(a) ? a : []).slice(0, 8).map((c) => { if (!PLATFORMS.includes(c.platform)) bad('Kênh không hỗ trợ: ' + c.platform); return { platform: c.platform, accountId: clean(c.accountId, 64), accountName: clean(c.accountName, 80), adapter: c.adapter === 'export' ? 'export' : 'socin' }; });
 
@@ -178,6 +232,11 @@ module.exports = function init({ WS, json, body }) {
         if (b.imageSteps !== undefined) { const n = Number(b.imageSteps); if (!Number.isInteger(n) || n < 1 || n > 60) bad('Số bước phải từ 1 đến 60'); s.imageSteps = n; }
         if (b.imageCfg !== undefined) { const n = Number(b.imageCfg); if (!(n >= 0 && n <= 20)) bad('CFG phải từ 0 đến 20'); s.imageCfg = n; }
         if (b.imageStyle !== undefined) s.imageStyle = clean(b.imageStyle, 200);
+        if (b.imageSource !== undefined) { if (!['api', 'gemini', 'claude', 'card'].includes(b.imageSource)) bad('Nguồn ảnh không hợp lệ'); s.imageSource = b.imageSource; }
+        if (b.videoEngine !== undefined) { if (!['ffmpeg', 'gemini'].includes(b.videoEngine)) bad('Engine video không hợp lệ'); s.videoEngine = b.videoEngine; }
+        if (b.geminiKey) { if (!/^[\w-]{20,100}$/.test(b.geminiKey)) bad('Khóa Gemini không hợp lệ'); s.gemini = { ...s.gemini, key: b.geminiKey }; } if (b.clearGeminiKey) s.gemini = { ...s.gemini, key: '' };
+        if (b.geminiImageModel !== undefined) { const v = clean(b.geminiImageModel, 60); if (!/^[\w.-]{1,60}$/.test(v)) bad('Tên model ảnh không hợp lệ'); s.gemini = { ...s.gemini, imageModel: v }; }
+        if (b.geminiVideoModel !== undefined) { const v = clean(b.geminiVideoModel, 60); if (!/^[\w.-]{1,60}$/.test(v)) bad('Tên model video không hợp lệ'); s.gemini = { ...s.gemini, videoModel: v }; }
         if (b.engine !== undefined) { if (!['cit', 'say'].includes(b.engine)) bad('Nguồn giọng không hợp lệ'); s.engine = b.engine; }
         if (b.citUrl !== undefined) { const v = clean(b.citUrl, 100).replace(/\/$/, ''); if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d{2,5})?$/.test(v)) bad('Địa chỉ CIT phải là http://127.0.0.1:<cổng> hoặc http://localhost:<cổng>'); s.citUrl = v; }
         if (b.citVoice !== undefined) { const v = clean(b.citVoice, 80); if (v && !/^[\p{L}\p{N} .()_-]{1,80}$/u.test(v)) bad('Mã giọng không hợp lệ'); s.citVoice = v; }
@@ -188,6 +247,7 @@ module.exports = function init({ WS, json, body }) {
         const out = await ask(`Bạn là art director. ${ctxOf(p)}\nCác cảnh:\n${sc}\nTạo thiết kế NHẤT QUÁN để vẽ mọi cảnh. Trả về DUY NHẤT JSON: {"character":"English, ONE detailed sentence: the same main character in every scene (age, gender, face, hair, skin tone, exact clothing and colours)","style":"English, 1 sentence: shared art style, colour palette, lighting","scenes":[{"imagePrompt":"English: ONLY action, setting, mood, camera of that scene, do NOT describe the character, no text"}]} với đúng ${p.script.scenes.length} phần tử scenes, theo thứ tự.`);
         const r = parseJson(out); p.script.character = clean(r.character, 400); p.script.style = clean(r.style, 300); if (Array.isArray(r.scenes)) r.scenes.slice(0, p.script.scenes.length).forEach((x, i) => { if (x && x.imagePrompt) p.script.scenes[i].imagePrompt = clean(x.imagePrompt, 500); }); p.seed = 0; save(p); return json(res, 200, { ok: true, project: view(p) }), true; }
       if (route === 'image/reseed') { const p = load(b.id); p.seed = 0; save(p); return json(res, 200, { ok: true, project: view(p) }), true; }
+      if (route === 'gemini/test') { const k = getSet().gemini.key; if (!k) bad('Chưa nhập khóa Gemini'); const r = await fetch(`${GB()}/v1beta/models?pageSize=1`, { headers: { 'x-goog-api-key': k }, signal: AbortSignal.timeout(15000) }).catch(() => bad('Không kết nối được Gemini')); if (!r.ok) await gErr(r, 'Gemini'); return json(res, 200, { ok: true }), true; }
       if (route === 'image/detect') { const bases = ['http://127.0.0.1:7860', 'http://127.0.0.1:7861']; for (const base of bases) { try { const r = await fetch(base + '/sdapi/v1/options', { signal: AbortSignal.timeout(2500) }); if (r.status < 500) return json(res, 200, { ok: true, found: true, url: base }), true; } catch {} } return json(res, 200, { ok: true, found: false }), true; }
       if (route === 'image/enable') { const url = clean(b.url, 100); if (!/^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}$/.test(url)) bad('Địa chỉ không hợp lệ'); const st = getSet(); st.imageApi = url; if (b.turbo) { st.imageSteps = 6; st.imageCfg = 2; } wj(SETF, st, 0o600); return json(res, 200, { ok: true, settings: pubSet() }), true; }
       if (route === 'voice/list') { const h = await citHealth(); let voices = []; if (h.ok) { try { voices = await citVoices(); } catch (e) { h.ok = false; h.error = e.message; } } return json(res, 200, { ok: true, health: h, voices }), true; }
@@ -211,17 +271,14 @@ module.exports = function init({ WS, json, body }) {
       if (route === 'script/save') { const p = load(b.id); if (!b.script || !Array.isArray(b.script.scenes)) bad('Kịch bản không hợp lệ'); const sc = p.script || { captions: {} };
         sc.title = clean(b.script.title, 120); sc.hook = clean(b.script.hook, 300); sc.scenes = b.script.scenes.slice(0, 12).map((x) => ({ seconds: Math.min(30, Math.max(2, Number(x.seconds) || 4)), narration: clean(x.narration, 500), text: clean(x.text, 80), visual: clean(x.visual, 300), icon: clean(x.icon, 8), imagePrompt: clean(x.imagePrompt, 500) })); if (b.script.style !== undefined) sc.style = clean(b.script.style, 300); if (b.script.character !== undefined) sc.character = clean(b.script.character, 400);
         Object.entries(b.script.captions || {}).forEach(([k, c]) => { if (PLATFORMS.includes(k)) sc.captions[k] = { title: clean(c.title, 120), text: clean(c.text, 2200), hashtags: (c.hashtags || []).map((h) => clean(h, 40)).slice(0, 10) }; }); p.script = sc; save(p); return json(res, 200, { ok: true, project: view(p) }), true; }
-      if (route === 'image/generate') {
-        const p = load(b.id), n = Number(b.scene); const sc = p.script && p.script.scenes[n - 1]; if (!sc) bad('Không có cảnh này'); const dir = outDir(p.id); fs.mkdirSync(dir, { recursive: true }); const file = `scene-${n}.png`, set = getSet();
-        if (b.source === 'api') { if (!set.imageApi) bad('Chưa cấu hình server ảnh (vd: Draw Things / Stable Diffusion WebUI)'); fs.writeFileSync(path.join(dir, file), await imgApi(set, [p.script.character, p.script.style, sc.imagePrompt || sc.visual].filter(Boolean).join(', '), 576, 1024, projSeed(p))); }
-        else await cardPng(iconOf(sc), n, p.script.scenes.length, path.join(dir, file));
-        p.images[String(n)] = file; p.step = 'images'; save(p); return json(res, 200, { ok: true, project: view(p) }), true; }
+      if (route === 'image/generate') { const p = load(b.id), n = Number(b.scene); if (!p.script || !p.script.scenes[n - 1]) bad('Không có cảnh này'); const src = ['api', 'gemini', 'claude', 'card'].includes(b.source) ? b.source : 'card'; await genImage(p, n, src); return json(res, 200, { ok: true, project: view(p) }), true; }
       if (route === 'image/upload') { const p = load(b.id), n = Number(b.scene); if (!p.script || !p.script.scenes[n - 1]) bad('Không có cảnh này'); const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(String(b.dataUrl || '')); if (!m) bad('Chỉ nhận ảnh PNG/JPEG'); const buf = Buffer.from(m[2], 'base64'); if (buf.length > 8e6) bad('Ảnh tối đa 8 MB'); const dir = outDir(p.id); fs.mkdirSync(dir, { recursive: true }); const file = `scene-${n}.png`; fs.writeFileSync(path.join(dir, file), buf); p.images[String(n)] = file; p.step = 'images'; save(p); return json(res, 200, { ok: true, project: view(p) }), true; }
+      if (route === 'video/cancel') { const c = jobCtx.get(clean(b.id, 80)); if (!c) bad('Không có video đang dựng'); c.cancelled = true; try { c.ac.abort(); } catch {} c.children.forEach((x) => { try { x.kill('SIGKILL'); } catch {} }); return json(res, 200, { ok: true }), true; }
       if (route === 'video/render') {
         const p = load(b.id); if (jobs.has(p.id)) bad('Video đang được dựng'); if (!has('ffmpeg')) bad('Chưa có ffmpeg. Cài bằng: brew install ffmpeg'); if (!p.script) bad('Chưa có kịch bản');
-        const miss = p.script.scenes.map((_, i) => i + 1).filter((i) => !p.images[String(i)]); if (miss.length) bad('Còn thiếu ảnh cho cảnh: ' + miss.join(', '));
+        let miss = p.script.scenes.map((_, i) => i + 1).filter((i) => !p.images[String(i)]); if (miss.length && b.autoImages) { const src = ['api', 'gemini', 'claude', 'card'].includes(b.imageSource) ? b.imageSource : srcOf(getSet()); for (const n of miss) await genImage(p, n, src); miss = []; } if (miss.length) bad('Còn thiếu ảnh cho cảnh: ' + miss.join(', '));
         p.video = { status: 'rendering', started: Date.now() }; p.step = 'video'; save(p); jobs.add(p.id);
-        render(p.id, { voice: b.voice !== false, captions: b.captions !== false }).then((r) => { const q2 = load(p.id); q2.video = { status: 'done', ...r, at: Date.now() }; save(q2); }).catch((e) => { const q2 = load(p.id); q2.video = { status: 'error', error: String(e.message).slice(0, 500) }; save(q2); }).finally(() => jobs.delete(p.id));
+        render(p.id, { voice: b.voice !== false, captions: b.captions !== false, engine: b.engine === 'gemini' ? 'gemini' : 'ffmpeg', delay: Number(b.testDelay) || 0 }).then((r) => { const q2 = load(p.id); q2.video = { status: 'done', ...r, at: Date.now() }; save(q2); }).catch((e) => { const q2 = load(p.id); q2.video = e.cancelled ? { status: 'cancelled', at: Date.now() } : { status: 'error', error: String(e.message).slice(0, 500) }; save(q2); }).finally(() => jobs.delete(p.id));
         return json(res, 200, { ok: true, project: view(load(p.id)) }), true; }
       if (route === 'schedule/plan') {
         const p = load(b.id); if (!p.script) bad('Chưa có nội dung'); if (!p.channels.length) bad('Chưa chọn kênh đăng');

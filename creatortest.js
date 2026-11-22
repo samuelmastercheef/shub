@@ -14,17 +14,26 @@ const cit = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += 
   if (q.url === '/api/tts/generate') { citHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'audio/mpeg' }); return r.end(fs.readFileSync(mp3)); } r.writeHead(404); r.end(); }); });
 const imgHits = []; const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64').toString('base64');
 const img = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => { if (q.url === '/sdapi/v1/txt2img') { if (process.env.IMG422 && JSON.parse(b).cfg_scale !== undefined) { r.writeHead(422); return r.end('{"detail":"bad field cfg_scale"}'); } imgHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end(JSON.stringify({ images: [png] })); } r.writeHead(404); r.end(); }); });
+const gemHits = { img: [], vid: 0 }; const GKEY = 'AIzaFakeKey1234567890abcdef';
+const mp4 = path.join(T, 'clip.mp4'); require('child_process').execSync(`ffmpeg -y -f lavfi -i testsrc=size=540x960:rate=30:duration=1 -pix_fmt yuv420p "${mp4}" 2>/dev/null`);
+const gem = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => { const j = (c, o) => { r.writeHead(c, { 'Content-Type': 'application/json' }); r.end(JSON.stringify(o)); };
+  if (q.headers['x-goog-api-key'] !== GKEY) return j(403, { error: { message: 'bad key' } });
+  if (q.url.startsWith('/v1beta/models?')) return j(200, { models: [] });
+  if (q.url.includes(':generateContent')) { gemHits.img.push(JSON.parse(b)); return j(200, { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: png } }] } }] }); }
+  if (q.url === '/v1beta/interactions') { gemHits.vid++; return j(200, { steps: [{ type: 'model_output', content: [{ type: 'video', data: fs.readFileSync(mp4).toString('base64') }] }] }); } j(404, {}); }); });
 const get = (p, port) => new Promise((res) => http.get({ host: '127.0.0.1', port, path: p }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, t: d, n: Number(r.headers['content-length'] || d.length) })); }));
 const post = (p, o, port) => new Promise((res) => { const rq = http.request({ host: '127.0.0.1', port, path: p, method: 'POST' }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, j: JSON.parse(d || '{}') })); }); rq.end(JSON.stringify(o)); });
-cit.listen(0); img.listen(0); fake.listen(0, async () => {
+gem.listen(0); cit.listen(0); img.listen(0); fake.listen(0, async () => {
+  if (!gem.listening) await new Promise((r) => gem.once('listening', r));
   const bin = path.join(T, 'fakeclaude');
   fs.writeFileSync(bin, `#!/bin/bash
 if echo "$2" | grep -q "6 ý tưởng"; then echo '[{"title":"Mẹo 1","hook":"Bạn có biết?","angle":"vốn","format":"video"},{"title":"Mẹo 2","hook":"h","angle":"a","format":"video"}]';
 elif echo "$2" | grep -q "biên kịch"; then echo 'Đây: {"title":"5 mẹo vốn","hook":"Dừng lại!","scenes":[{"seconds":2,"narration":"Xin chào các bạn","text":"Mẹo quản lý vốn","visual":"v","imagePrompt":"cartoon"},{"seconds":2,"narration":"Mẹo số một","text":"Luôn đặt dừng lỗ","visual":"v","imagePrompt":"cartoon"}],"captions":{"tiktok":{"title":"5 mẹo","text":"Nội dung","hashtags":["vốn","forex"]},"threads":{"title":"t","text":"x","hashtags":[]}}}';
+elif echo "$2" | grep -q "họa sĩ vector"; then echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920"><rect width="1080" height="1920" fill="#0B7F8F"/><circle cx="540" cy="900" r="300" fill="#FFB020"/></svg>';
 elif echo "$2" | grep -q "art director"; then echo '{"character":"A 25-year-old Vietnamese man, short black hair, white t-shirt","style":"flat 2D cartoon, teal palette","scenes":[{"imagePrompt":"checking phone at desk, shocked"},{"imagePrompt":"cheering with fireworks"}]}';
 else echo ok; fi\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(T, 'c.json'), JSON.stringify({ port: 4793, workspace: WS }));
-  const srv = spawn('node', ['server.js'], { cwd: __dirname, env: { ...process.env, SHUB_CONFIG: path.join(T, 'c.json'), SHUB_CLAUDE_BIN: bin, SHUB_NO_TIMER: '1' }, stdio: 'ignore' });
+  const srv = spawn('node', ['server.js'], { cwd: __dirname, env: { ...process.env, SHUB_GEMINI_BASE: 'http://127.0.0.1:' + gem.address().port, SHUB_CONFIG: path.join(T, 'c.json'), SHUB_CLAUDE_BIN: bin, SHUB_NO_TIMER: '1' }, stdio: 'ignore' });
   await new Promise((r) => setTimeout(r, 900)); const P = 4793;
   try {
     ok((await post('/api/cr/project/save', { name: 'x', concept: 'a' }, P)).s === 400, 'concept quá ngắn bị chặn');
@@ -57,6 +66,31 @@ else echo ok; fi\n`, { mode: 0o755 });
     const n0 = imgHits.length; await post('/api/cr/image/generate', { id, scene: 1, source: 'api' }, P); await post('/api/cr/image/generate', { id, scene: 2, source: 'api' }, P);
     ok(imgHits.length === n0 + 2 && imgHits[n0].seed === imgHits[n0 + 1].seed && imgHits[n0].seed > 0 && imgHits[n0].prompt.includes('A 25-year-old Vietnamese man') && imgHits[n0].prompt.indexOf('A 25-year-old') < imgHits[n0].prompt.indexOf('shocked'), 'cùng seed + nhân vật đặt trước prompt cảnh');
     const rs = await post('/api/cr/image/reseed', { id }, P); ok(rs.j.ok && rs.j.project.seed === 0, 'đổi seed');
+    // dừng dựng video
+    await post('/api/cr/video/render', { id, voice: false, captions: false, testDelay: 3000 }, P); await new Promise((r) => setTimeout(r, 400));
+    ok((await post('/api/cr/video/cancel', { id }, P)).j.ok, 'gửi lệnh dừng dựng video');
+    for (let i = 0; i < 20; i++) { await new Promise((r) => setTimeout(r, 500)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'cancelled', 'video chuyển trạng thái "đã dừng": ' + v.video.status);
+    ok((await post('/api/cr/video/cancel', { id }, P)).s === 400, 'dừng khi không có job báo lỗi');
+    // Gemini + Claude SVG
+    ok((await post('/api/cr/settings/save', { geminiKey: 'bad key!' }, P)).s === 400, 'chặn khóa Gemini sai định dạng');
+    ok((await get('/api/cr/gemini/test', P)).s === 400, 'chưa có khóa thì báo lỗi');
+    ok((await post('/api/cr/settings/save', { geminiKey: GKEY, imageSource: 'gemini' }, P)).j.ok, 'lưu khóa Gemini');
+    ok(!JSON.stringify(JSON.parse((await get('/api/cr/settings', P)).t)).includes(GKEY) && JSON.parse((await get('/api/cr/settings', P)).t).settings.gemini.hasKey, 'khóa Gemini không trả về client');
+    ok(JSON.parse((await get('/api/cr/gemini/test', P)).t).ok, 'kiểm tra kết nối Gemini');
+    await post('/api/cr/image/generate', { id, scene: 1, source: 'gemini' }, P); await post('/api/cr/image/generate', { id, scene: 2, source: 'gemini' }, P);
+    ok(gemHits.img.length === 2 && gemHits.img[0].contents[0].parts.length === 1 && gemHits.img[1].contents[0].parts.length === 2 && !!gemHits.img[1].contents[0].parts[0].inlineData, 'ảnh Gemini: cảnh 2 dùng cảnh 1 làm ảnh tham chiếu');
+    const cs = await post('/api/cr/image/generate', { id, scene: 1, source: 'claude' }, P); ok(cs.j.ok && fs.readFileSync(`${WS}/downloads/creator/${id}/scene-1.png`)[1] === 0x50, 'Claude vẽ SVG thành PNG');
+    await post('/api/cr/video/render', { id, voice: false, captions: false, engine: 'gemini' }, P);
+    for (let i = 0; i < 90; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'done' && /^Gemini 2\/2/.test(v.video.videoSource) && gemHits.vid === 2, 'dựng video bằng clip Gemini: ' + JSON.stringify(v.video).slice(0, 140));
+    // tự vẽ cảnh thiếu ảnh khi dựng
+    await post('/api/cr/project/save', { name: 'Tự vẽ', concept: 'Thử tự vẽ ảnh khi dựng video' }, P); await post('/api/cr/ai/ideas', { id: 'tu-ve' }, P); await post('/api/cr/ai/script', { id: 'tu-ve', idea: 0 }, P);
+    ok((await post('/api/cr/video/render', { id: 'tu-ve', voice: false, captions: false }, P)).s === 400, 'thiếu ảnh mà không bật tự vẽ bị chặn');
+    ok((await post('/api/cr/video/render', { id: 'tu-ve', voice: false, captions: false, autoImages: true, imageSource: 'card' }, P)).j.ok, 'bật tự vẽ ảnh thiếu rồi dựng video');
+    for (let i = 0; i < 90; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=tu-ve', P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'done' && Object.keys(v.images).length === 2, 'video tự vẽ xong');
+    await post('/api/cr/settings/save', { imageSource: 'api' }, P);
     // giọng CIT
     const cp = cit.address().port;
     ok((await post('/api/cr/settings/save', { citUrl: 'http://evil.example.com' }, P)).s === 400, 'chặn địa chỉ CIT không phải localhost');
@@ -80,9 +114,9 @@ else echo ok; fi\n`, { mode: 0o755 });
     const s1 = await post('/api/cr/schedule/send', { id, item: items[0].id }, P); ok(s1.j.ok && got.length === 1 && got[0].platform === 'tiktok' && got[0].account_id === 'acc1' && got[0].video_size > 5000, 'gửi sang Socin kèm metadata video');
     ok((await post('/api/cr/schedule/send', { id, item: items[0].id }, P)).s === 400, 'không gửi lặp mục đã gửi');
     const s2 = await post('/api/cr/schedule/send', { id, item: items[1].id }, P); ok(s2.j.ok && fs.existsSync(s2.j.project.schedule[1].result.exported + '/noi-dung.txt'), 'kênh "xuất gói" copy nội dung + video');
-    const st = JSON.parse((await get('/api/cr/stats', P)).t); ok(st.videos === 1 && st.byStatus.sent === 2, 'thống kê');
+    const st = JSON.parse((await get('/api/cr/stats', P)).t); ok(st.videos >= 1 && st.byStatus.sent === 2, 'thống kê');
     ok((await post('/api/cr/project/delete', { id, confirm: 'sai' }, P)).s === 400, 'xóa dự án cần gõ tên');
     ok((await get('/creator.html', P)).s === 200, 'trang creator.html');
   } catch (e) { fail++; console.log('LỖI', e); }
-  srv.kill(); fake.close(); img.close(); console.log(`\n${pass} đạt, ${fail} lỗi`); process.exit(fail ? 1 : 0);
+  srv.kill(); fake.close(); img.close(); gem.close(); console.log(`\n${pass} đạt, ${fail} lỗi`); process.exit(fail ? 1 : 0);
 });
