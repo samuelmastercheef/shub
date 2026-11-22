@@ -1,4 +1,4 @@
-# S Hub
+# S Hub · Socin
 
 Một giao diện tổng cho các tool: S Build Hub, S Test Hub, S VPS và các app khác (S Chat, S VPN, S Clean, Terminal Socin).
 
@@ -33,3 +33,8 @@ Chỉ nghe ở 127.0.0.1. Kết quả lưu ở ~/TestHubWorkspace/reports/.
   Backup tự động bằng cron trên VPS; tuỳ chọn tự đồng bộ bản mới về Mac mỗi 30 phút khi S Hub đang mở. Mỗi bản ghi lại commit của từng dự án.
 - **Docker:** container (gom theo compose project), restart/dừng/chạy/xóa/log/chi tiết, CPU-RAM, compose cập nhật image + chạy lại, image, volume, dọn an toàn (không xóa volume).
 - **Tiến trình & hệ thống:** PM2 (restart/dừng/chạy/log), dịch vụ systemd lỗi, cổng đang mở, phân tích dung lượng ổ đĩa, cron.
+
+## Giao diện & brand
+Brand Socin: teal `#0B7F8F`, vàng `#FFB020`, nền tối `#06111C`, font Be Vietnam Pro, tự theo chế độ sáng/tối của máy.
+Logo ở `public/brand/` (`icon.svg`, `logo.svg`, `icon-1024.png`). Màu và kiểu nút nằm trong `public/brand.css`.
+Trang Tổng quan theo quy trình: Kiểm thử → Dựng app → Triển khai. Cổng bận thì S Hub tự thử cổng kế tiếp.

@@ -308,10 +308,10 @@ async function appStatus(a) {
 // ---------- HTTP ----------
 const json = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const body = (req) => new Promise((r) => { let b = ''; req.on('data', (d) => (b += d)); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
-const MIME = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain; charset=utf-8' };
+const MIME = { '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.js': 'text/javascript', '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8' };
 
 const vpsHandle = require('./vps')({ WS, json, body });
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
   const hostOk = /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host || '');
@@ -332,7 +332,11 @@ http.createServer(async (req, res) => {
       scanCache.at = 0;
       return json(res, 200, { ok: true });
     }
-    if (u.pathname === '/api/repos') return json(res, 200, { repos: await listRepos(), hasToken: !!cfg.githubToken, hasGh: has('gh') });
+    if (u.pathname === '/api/repos') {
+      let repos = [], error = '';
+      try { repos = await listRepos(); } catch (e) { error = String(e.message || e); }
+      return json(res, 200, { repos, error, hasToken: !!cfg.githubToken, hasGh: has('gh') });
+    }
     if (u.pathname === '/api/env') return json(res, 200, { node: process.version, git: has('git'), python: has('python3'), go: has('go'), gh: has('gh'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })(), workspace: WS });
     if (u.pathname === '/api/run' && req.method === 'POST') {
       const b = await body(req);
@@ -366,4 +370,15 @@ http.createServer(async (req, res) => {
     if (p.startsWith(path.join(ROOT, 'public')) && fs.existsSync(p)) { res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'text/plain' }); return fs.createReadStream(p).pipe(res); }
     json(res, 404, { error: 'not found' });
   } catch (e) { json(res, 500, { error: String(e.message || e) }); }
-}).listen(cfg.port, '127.0.0.1', () => console.log(`Test Hub chạy tại http://127.0.0.1:${cfg.port}\nWorkspace: ${WS}`));
+});
+function listen(port, tries) {
+  server.once('error', (e) => {
+    if (e.code === 'EADDRINUSE' && tries > 0) { console.log(`Cổng ${port} đang bận, thử cổng ${port + 1}…`); return listen(port + 1, tries - 1); }
+    console.error('Không mở được server: ' + e.message); process.exit(1);
+  });
+  server.listen(port, '127.0.0.1', () => {
+    cfg.port = port;
+    console.log(`\nS Hub chạy tại http://127.0.0.1:${port}\nWorkspace: ${WS}\n(Giữ cửa sổ này mở. Nhấn Ctrl+C để tắt.)`);
+  });
+}
+listen(cfg.port, 10);

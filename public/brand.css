@@ -1,0 +1,34 @@
+/* Socin brand cho S Hub: teal #0B7F8F, vàng nắng #FFB020, nền tối #06111C, bo góc 8/14/22, Be Vietnam Pro */
+:root{
+  --teal:#0B7F8F;--sun:#FFB020;--sun-d:#C98300;
+  --r1:8px;--r2:14px;--r3:22px;
+  --bg:#F4F8FA;--side:#FFFFFF;--card:#FFFFFF;--line:#DCE7EC;--tx:#0B1F2A;--mut:#5B7482;
+  --acc:#0B7F8F;--acc-t:#0B7F8F;--on-acc:#fff;
+  --ok:#139A62;--bad:#D6453D;--warn:#C98300;
+  --in:#F4F8FA;--hover:#EAF3F6;--logbg:#0B1B2A;--logtx:#C5D6DF;--track:#DCE7EC;
+  --ok-bg:#DDF3E8;--bad-bg:#FBE4E2;--off-bg:#E8EEF1;--bad-btn:#D6453D;--shadow:0 1px 2px rgba(11,31,42,.06),0 4px 14px rgba(11,31,42,.05);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#06111C;--side:#081724;--card:#0B1B2A;--line:#17324A;--tx:#E8F1F5;--mut:#8FA6B4;
+  --acc:#0B7F8F;--acc-t:#2BC0D2;
+  --ok:#3FCB8A;--bad:#F2625A;--warn:#FFB020;
+  --in:#06111C;--hover:#10263A;--logbg:#040C14;--logtx:#B8CAD6;--track:#17324A;
+  --ok-bg:#0F3A2B;--bad-bg:#4A1F25;--off-bg:#14293B;--bad-btn:#8E2F36;--shadow:none;color-scheme:dark}}
+html,body{font-family:"Be Vietnam Pro",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+body{background:var(--bg);color:var(--tx)}
+.card{border-radius:var(--r2);box-shadow:var(--shadow)}
+button{border:0;border-radius:var(--r1);background:var(--acc);color:var(--on-acc);box-shadow:0 2px 0 rgba(0,0,0,.22);transition:transform .06s,box-shadow .06s,filter .15s;font-family:inherit}
+button:hover{filter:brightness(1.08)}button:active{transform:translateY(2px);box-shadow:none}
+button.g,button.ghost{background:transparent;color:var(--tx);box-shadow:none;border:1px solid var(--line)}button.g:hover,button.ghost:hover{background:var(--hover);filter:none}
+button.r{background:var(--bad-btn);color:#fff}
+button.cta{background:var(--sun);color:#2A1A00;box-shadow:0 3px 0 var(--sun-d);font-weight:700}button.cta:active{transform:translateY(3px);box-shadow:none}
+input,select,textarea{background:var(--in);color:var(--tx);border:1px solid var(--line);border-radius:var(--r1);font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:0;border-color:var(--acc)}
+a{color:var(--acc-t)}h2{color:var(--mut)}
+code{background:var(--in);border:1px solid var(--line)}
+dialog{border-radius:var(--r3)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+.checks input[type=checkbox]{width:auto;margin:0 6px 0 0;vertical-align:middle;accent-color:var(--acc)}.checks label{display:inline-flex;align-items:center}
+input[type=checkbox]{accent-color:var(--acc)}

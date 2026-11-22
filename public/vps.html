@@ -2,27 +2,26 @@
 <html lang="vi"><head><meta charset="utf-8"><title>S VPS</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-.tabs{display:flex;gap:6px;margin-bottom:2px}.tabs button{background:transparent;border:1px solid var(--line);color:var(--tx)}.tabs button.on{background:var(--acc);border-color:var(--acc)}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}textarea{width:100%;background:#0f1318;border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:12px ui-monospace,Menlo,monospace}.sm button{padding:3px 8px;font-size:12px;margin:0 3px 3px 0}.pin{color:var(--warn)}.sec{margin-top:14px}
-:root{--bg:#0f1318;--card:#171d25;--line:#263040;--tx:#e6edf5;--mut:#8696a8;--ok:#3fb97a;--bad:#ef5b5b;--warn:#e0b341;--acc:#4c9aff}
+.tabs{display:flex;gap:6px;margin-bottom:2px}.tabs button{background:transparent;border:1px solid var(--line);color:var(--tx)}.tabs button.on{background:var(--acc);border-color:var(--acc)}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}textarea{width:100%;background:var(--in);border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:12px ui-monospace,Menlo,monospace}.sm button{padding:3px 8px;font-size:12px;margin:0 3px 3px 0}.pin{color:var(--warn)}.sec{margin-top:14px}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,Segoe UI,sans-serif}
 main{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px 20px;height:100vh}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto}
 .col{display:flex;flex-direction:column;gap:14px;overflow:auto}
 h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
-input,select{width:100%;background:#0f1318;border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:inherit}
-button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:13px}
-button.g{background:transparent;border:1px solid var(--line);color:var(--tx)}button.r{background:#6b2a30}button:disabled{opacity:.5}
-.srv{padding:9px;border-radius:8px;cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between}.srv:hover{background:#1d2530}.srv.on{border-color:var(--acc);background:#1d2530}.srv small{color:var(--mut)}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#10151c;border:1px solid var(--line);border-radius:8px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:var(--mut);font-size:12px}
-.bar{height:6px;background:#263040;border-radius:4px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+input,select{width:100%;background:var(--in);border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:inherit}
+button{border:0;border-radius:6px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:13px}
+button.g{background:transparent;border:1px solid var(--line);color:var(--tx)}button.r{background:var(--bad-btn)}button:disabled{opacity:.5}
+.srv{padding:9px;border-radius:8px;cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between}.srv:hover{background:var(--hover)}.srv.on{border-color:var(--acc);background:var(--hover)}.srv small{color:var(--mut)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:var(--mut);font-size:12px}
+.bar{height:6px;background:var(--track);border-radius:4px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
 .proj{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px}.proj .h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .proj .m{color:var(--mut);font-size:12px;margin:4px 0 8px}.acts{display:flex;gap:6px;flex-wrap:wrap}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}label.k{font-size:12px;color:var(--mut)}
-#log{background:#0a0d11;border-radius:8px;padding:10px;min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;font:12px/1.4 ui-monospace,Menlo,monospace;color:#b8c4d2}
-.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:#1f3d2e;color:#7ee0a8}.tag.off{background:#2a313c;color:var(--mut)}
-dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;width:520px;max-width:94vw}dialog::backdrop{background:#000a}
-.mut{color:var(--mut);font-size:12px}code{background:#0a0d11;padding:1px 5px;border-radius:4px;word-break:break-all}
-</style></head><body><main>
+#log{background:var(--logbg);border-radius:8px;padding:10px;min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;font:12px/1.4 ui-monospace,Menlo,monospace;color:var(--logtx)}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:var(--ok-bg);color:var(--ok)}.tag.off{background:var(--off-bg);color:var(--mut)}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;width:520px;max-width:94vw}dialog::backdrop{background:#0008}
+.mut{color:var(--mut);font-size:12px}code{background:var(--logbg);padding:1px 5px;border-radius:4px;word-break:break-all}
+</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg"></head><body><main>
 <div class="card col" style="gap:8px"><h2>Server <button class="g" onclick="editSrv()">+ Thêm</button></h2><div id="list"></div>
 <p class="mut">Kết nối bằng ssh có sẵn trên máy này (đăng nhập bằng key, không dùng mật khẩu). Private key không được lưu, chỉ lưu đường dẫn.</p></div>
 <div class="col" id="right"><div class="card" id="empty">Thêm một server để bắt đầu.</div></div>
@@ -36,7 +35,7 @@ dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);borde
 <p class="mut" style="margin:0 0 8px">Chưa có key? Mở Terminal trên Mac chạy: <code>ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519</code> rồi <code>ssh-copy-id root@IP_VPS</code> (nhập mật khẩu VPS một lần).<br>Key đặt passphrase thì S VPS không dùng được (chạy nền, không có ai nhập).</p>
 <label class="k">Thông báo Telegram (tuỳ chọn, gửi kết quả deploy/dọn rác)</label>
 <div class="f2"><input id="s_tgt" placeholder="Bot token"><input id="s_tgc" placeholder="Chat ID"></div>
-<div style="display:flex;gap:8px;justify-content:space-between"><button class="r" id="s_del" onclick="delSrv()">Xóa</button><span><button class="g" onclick="dsrv.close()">Hủy</button> <button onclick="saveSrv()">Lưu</button></span></div></form></dialog>
+<div style="display:flex;gap:8px;justify-content:space-between"><button class="r" id="s_del" onclick="delSrv()">Xóa</button><span><button class="g" onclick="dsrv.close()">Hủy</button> <button class="cta" onclick="saveSrv()">Lưu</button></span></div></form></dialog>
 
 <dialog id="dprj"><form method="dialog" onsubmit="return false"><h2>Dự án trên VPS</h2>
 <div class="f2"><input id="p_name" placeholder="Tên (chữ, số, gạch): my-api"><select id="p_pm"><option value="pm2">Chạy bằng PM2</option><option value="docker">Docker Compose</option><option value="systemd">systemd (tên service = tên dự án)</option><option value="none">Chỉ build, không chạy</option></select></div>
@@ -71,7 +70,7 @@ function draw(){
  <div class="card"><h2>Dự án (deploy từ GitHub) <button class="g" onclick="editPrj()">+ Thêm dự án</button></h2>
  ${s.projects.map(p=>{const v=k&&k['PROJ_'+p.id];const vv=v&&v!=='none'?v.split('|'):null;return `<div class="proj"><div class="h"><b>${esc(p.name)}</b><span><span class="tag ${p.auto?'':'off'}">${p.auto?'Tự cập nhật mỗi '+p.intervalMin+' phút':'Cập nhật tay'}</span></span></div>
  <div class="m">${esc(p.repo)} · nhánh ${esc(p.branch)} · ${esc(p.dir)} · ${esc(p.pm)}<br>${vv?`Đang chạy: <code>${esc(vv[0])}</code> ${esc(vv[1])} (${esc(vv[2])})`:'Chưa cài lên VPS'}</div>
- <div class="acts"><button onclick="job('deploy',{project:'${p.id}',force:true})">${vv?'Cập nhật ngay':'Cài lần đầu'}</button>
+ <div class="acts"><button class="cta" onclick="job('deploy',{project:'${p.id}',force:true})">${vv?'Cập nhật ngay':'Cài lần đầu'}</button>
  <button class="g" onclick="genkey('${p.id}')">Deploy key</button>
  <button class="g" onclick="job('rollback',{project:'${p.id}'},1)">Quay lại bản trước</button>
  <button class="g" onclick="toggleAuto('${p.id}',${!p.auto})">${p.auto?'Tắt tự cập nhật':'Bật tự cập nhật'}</button>
