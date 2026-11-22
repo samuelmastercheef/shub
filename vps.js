@@ -278,6 +278,13 @@ cat "$K.pub"
         const b = await body(req);
         const old = d.servers.find((x) => x.id === b.id);
         const s = cleanServer(b, old);
+        if (b.keyPem && String(b.keyPem).trim()) {
+          const pem = String(b.keyPem).replace(/\r/g, '').trim() + '\n';
+          if (!/^-----BEGIN [A-Z ]*PRIVATE KEY-----\n[\s\S]+\n-----END [A-Z ]*PRIVATE KEY-----\n$/.test(pem) || pem.length > 20000) bad('Nội dung private key không hợp lệ (phải bắt đầu bằng -----BEGIN ... PRIVATE KEY-----)');
+          const kd = path.join(WS, 'keys'); fs.mkdirSync(kd, { recursive: true, mode: 0o700 });
+          const kp = path.join(kd, s.id); fs.writeFileSync(kp, pem, { mode: 0o600 }); fs.chmodSync(kp, 0o600);
+          s.keyPath = kp;
+        }
         if (old && String(b.tgToken || '').startsWith('••••')) s.tgToken = old.tgToken;
         if (old) d.servers[d.servers.indexOf(old)] = s; else { if (d.servers.some((x) => x.id === s.id)) bad('Trùng id server'); d.servers.push(s); }
         save(d); return json(res, 200, { ok: true, id: s.id }), true;

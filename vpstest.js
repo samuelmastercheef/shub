@@ -105,6 +105,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   r = await P('backup/act', { server: 'test', name: '../../etc/passwd', act: 'delete' }); ok(!!r.error, 'từ chối tên file backup nguy hiểm');
   o = await runJob('agent', { server: 'test', backupEnabled: true, backupHour: 2 });
   ok(/shub-backup/.test(o), 'cài cron backup');
+  // ---- Dán private key ----
+  const pem = '-----BEGIN OPENSSH PRIVATE KEY-----\nAAAAfake\n-----END OPENSSH PRIVATE KEY-----';
+  r = await P('servers', { name: 'KeyTest', host: 'example.com', user: 'root', keyPem: pem });
+  const kp = path.join(ws, 'keys', 'keytest');
+  ok(r.ok && fs.existsSync(kp) && (fs.statSync(kp).mode & 0o777) === 0o600, 'dán private key: lưu file quyền 600');
+  const sv = await (await fetch('http://127.0.0.1:4798/api/vps/servers')).text();
+  ok(sv.includes('keys/keytest') && !sv.includes('AAAAfake'), 'API không trả nội dung key');
+  r = await P('servers', { name: 'BadKey', host: 'example.com', keyPem: 'khong phai key' }); ok(!!r.error, 'từ chối nội dung key sai');
   // ---- Docker ----
   const dk = await P('docker/list', { server: 'test' });
   ok(dk.ok && dk.containers.length === 2 && dk.images.length === 1 && dk.volumes.length === 1, 'docker: liệt kê container/image/volume');
