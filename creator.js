@@ -36,8 +36,19 @@ module.exports = function init({ WS, json, body }) {
 
   // ---- ảnh ----
   async function imgApi(set, prompt, w, h) {
-    const r = await fetch(set.imageApi.replace(/\/$/, '') + '/sdapi/v1/txt2img', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: (set.imageStyle ? set.imageStyle + ', ' : '') + prompt, negative_prompt: 'text, letters, watermark, logo, blurry, low quality, deformed', width: w, height: h, steps: set.imageSteps, cfg_scale: set.imageCfg, guidance_scale: set.imageCfg }), signal: AbortSignal.timeout(300000) });
-    if (!r.ok) bad('Server ảnh lỗi HTTP ' + r.status); const j = await r.json(); if (!j.images || !j.images[0]) bad('Server ảnh không trả ảnh'); return Buffer.from(j.images[0], 'base64');
+    const url = set.imageApi.replace(/\/$/, '') + '/sdapi/v1/txt2img', neg = 'text, letters, watermark, logo, blurry, low quality, deformed', pr = (set.imageStyle ? set.imageStyle + ', ' : '') + prompt;
+    // Draw Things / A1111 khác nhau về tham số: thử đầy đủ → bỏ tham số lạ → tối giản; 422 = server từ chối tham số
+    const tries = [{ prompt: pr, negative_prompt: neg, width: w, height: h, steps: set.imageSteps, cfg_scale: set.imageCfg, guidance_scale: set.imageCfg },
+      { prompt: pr, negative_prompt: neg, width: w, height: h, steps: set.imageSteps, guidance_scale: set.imageCfg },
+      { prompt: pr, width: w, height: h, steps: set.imageSteps }];
+    let last = '';
+    for (const body of tries) {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(300000) }).catch(() => bad('Không kết nối được server ảnh (Draw Things đã mở và bật API Server chưa?)'));
+      if (r.status === 422 || r.status === 400) { last = `HTTP ${r.status}: ` + (await r.text().catch(() => '')).slice(0, 300); continue; }
+      if (!r.ok) bad('Server ảnh lỗi HTTP ' + r.status);
+      const j = await r.json().catch(() => null); if (!j || !j.images || !j.images[0]) bad('Server ảnh không trả ảnh'); return Buffer.from(String(j.images[0]).replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    }
+    bad('Server ảnh từ chối yêu cầu (' + last + '). Thử giảm số bước hoặc kiểm tra model trong Draw Things.');
   }
   const iconOf = (sc) => { const m = /\p{Extended_Pictographic}(\uFE0F|\u200D\p{Extended_Pictographic})*/u.exec((sc.icon || '') + (sc.text || '') + (sc.narration || '')); return m ? m[0] : '✨'; };
   async function cardPng(icon, idx, total, file) {

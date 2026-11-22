@@ -13,7 +13,7 @@ const cit = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += 
   if (q.url === '/voices') { r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end('[{"id":"thuy-dung","gender":"female","region":"South","isCloned":false}]'); }
   if (q.url === '/api/tts/generate') { citHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'audio/mpeg' }); return r.end(fs.readFileSync(mp3)); } r.writeHead(404); r.end(); }); });
 const imgHits = []; const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64').toString('base64');
-const img = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => { if (q.url === '/sdapi/v1/txt2img') { imgHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end(JSON.stringify({ images: [png] })); } r.writeHead(404); r.end(); }); });
+const img = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => { if (q.url === '/sdapi/v1/txt2img') { if (process.env.IMG422 && JSON.parse(b).cfg_scale !== undefined) { r.writeHead(422); return r.end('{"detail":"bad field cfg_scale"}'); } imgHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end(JSON.stringify({ images: [png] })); } r.writeHead(404); r.end(); }); });
 const get = (p, port) => new Promise((res) => http.get({ host: '127.0.0.1', port, path: p }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, t: d, n: Number(r.headers['content-length'] || d.length) })); }));
 const post = (p, o, port) => new Promise((res) => { const rq = http.request({ host: '127.0.0.1', port, path: p, method: 'POST' }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, j: JSON.parse(d || '{}') })); }); rq.end(JSON.stringify(o)); });
 cit.listen(0); img.listen(0); fake.listen(0, async () => {
@@ -50,7 +50,7 @@ else echo ok; fi\n`, { mode: 0o755 });
     ok((await post('/api/cr/settings/save', { imageSteps: 99 }, P)).s === 400, 'chặn số bước ngoài khoảng');
     await post('/api/cr/settings/save', { imageApi: 'http://127.0.0.1:' + img.address().port, imageSteps: 6, imageCfg: 2, imageStyle: 'flat cartoon' }, P);
     const ig = await post('/api/cr/image/generate', { id, scene: 1, source: 'api' }, P);
-    ok(ig.j.ok && imgHits.length === 1 && imgHits[0].steps === 6 && imgHits[0].cfg_scale === 2 && imgHits[0].prompt.startsWith('flat cartoon, ') && imgHits[0].width === 576 && imgHits[0].height === 1024, 'tạo ảnh qua server ảnh với steps/CFG/phong cách đã cấu hình');
+    ok(ig.j.ok && imgHits.length === 1 && imgHits[0].steps === 6 && (process.env.IMG422 ? imgHits[0].cfg_scale === undefined && imgHits[0].guidance_scale === 2 : imgHits[0].cfg_scale === 2) && imgHits[0].prompt.startsWith('flat cartoon, ') && imgHits[0].width === 576 && imgHits[0].height === 1024, 'tạo ảnh qua server ảnh với steps/CFG/phong cách đã cấu hình');
     // giọng CIT
     const cp = cit.address().port;
     ok((await post('/api/cr/settings/save', { citUrl: 'http://evil.example.com' }, P)).s === 400, 'chặn địa chỉ CIT không phải localhost');
