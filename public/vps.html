@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S VPS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+.tabs{display:flex;gap:6px;margin-bottom:2px}.tabs button{background:transparent;border:1px solid var(--line);color:var(--tx)}.tabs button.on{background:var(--acc);border-color:var(--acc)}table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}textarea{width:100%;background:#0f1318;border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:12px ui-monospace,Menlo,monospace}.sm button{padding:3px 8px;font-size:12px;margin:0 3px 3px 0}.pin{color:var(--warn)}.sec{margin-top:14px}
+:root{--bg:#0f1318;--card:#171d25;--line:#263040;--tx:#e6edf5;--mut:#8696a8;--ok:#3fb97a;--bad:#ef5b5b;--warn:#e0b341;--acc:#4c9aff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,Segoe UI,sans-serif}
+main{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:16px 20px;height:100vh}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto}
+.col{display:flex;flex-direction:column;gap:14px;overflow:auto}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center}
+input,select{width:100%;background:#0f1318;border:1px solid var(--line);color:var(--tx);padding:7px 8px;border-radius:6px;margin-bottom:6px;font:inherit}
+button{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 11px;cursor:pointer;font-weight:600;font-size:13px}
+button.g{background:transparent;border:1px solid var(--line);color:var(--tx)}button.r{background:#6b2a30}button:disabled{opacity:.5}
+.srv{padding:9px;border-radius:8px;cursor:pointer;border:1px solid transparent;display:flex;justify-content:space-between}.srv:hover{background:#1d2530}.srv.on{border-color:var(--acc);background:#1d2530}.srv small{color:var(--mut)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#10151c;border:1px solid var(--line);border-radius:8px;padding:10px}.stat b{display:block;font-size:18px}.stat span{color:var(--mut);font-size:12px}
+.bar{height:6px;background:#263040;border-radius:4px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+.proj{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px}.proj .h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.proj .m{color:var(--mut);font-size:12px;margin:4px 0 8px}.acts{display:flex;gap:6px;flex-wrap:wrap}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}label.k{font-size:12px;color:var(--mut)}
+#log{background:#0a0d11;border-radius:8px;padding:10px;min-height:160px;max-height:300px;overflow:auto;white-space:pre-wrap;font:12px/1.4 ui-monospace,Menlo,monospace;color:#b8c4d2}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;background:#1f3d2e;color:#7ee0a8}.tag.off{background:#2a313c;color:var(--mut)}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;width:520px;max-width:94vw}dialog::backdrop{background:#000a}
+.mut{color:var(--mut);font-size:12px}code{background:#0a0d11;padding:1px 5px;border-radius:4px;word-break:break-all}
+</style></head><body><main>
+<div class="card col" style="gap:8px"><h2>Server <button class="g" onclick="editSrv()">+ Thêm</button></h2><div id="list"></div>
+<p class="mut">Kết nối bằng ssh có sẵn trên máy này (đăng nhập bằng key, không dùng mật khẩu). Private key không được lưu, chỉ lưu đường dẫn.</p></div>
+<div class="col" id="right"><div class="card" id="empty">Thêm một server để bắt đầu.</div></div>
+</main>
+
+<dialog id="dsrv"><form method="dialog" onsubmit="return false"><h2>Server</h2>
+<input id="s_name" placeholder="Tên hiển thị (vd: VPS chính)"><div class="f2"><input id="s_host" placeholder="IP hoặc domain"><input id="s_port" placeholder="Cổng SSH" value="22"></div>
+<div class="f2"><input id="s_user" placeholder="User" value="root"><input id="s_key" placeholder="Key: ~/.ssh/id_ed25519"></div>
+<label class="k">Thông báo Telegram (tuỳ chọn, gửi kết quả deploy/dọn rác)</label>
+<div class="f2"><input id="s_tgt" placeholder="Bot token"><input id="s_tgc" placeholder="Chat ID"></div>
+<div style="display:flex;gap:8px;justify-content:space-between"><button class="r" id="s_del" onclick="delSrv()">Xóa</button><span><button class="g" onclick="dsrv.close()">Hủy</button> <button onclick="saveSrv()">Lưu</button></span></div></form></dialog>
+
+<dialog id="dprj"><form method="dialog" onsubmit="return false"><h2>Dự án trên VPS</h2>
+<div class="f2"><input id="p_name" placeholder="Tên (chữ, số, gạch): my-api"><select id="p_pm"><option value="pm2">Chạy bằng PM2</option><option value="docker">Docker Compose</option><option value="systemd">systemd (tên service = tên dự án)</option><option value="none">Chỉ build, không chạy</option></select></div>
+<input id="p_repo" placeholder="Repo: git@github.com:owner/repo.git (private) hoặc https://github.com/owner/repo.git">
+<div class="f2"><input id="p_branch" placeholder="Nhánh" value="main"><input id="p_dir" placeholder="Thư mục trên VPS: ~/apps/my-api"></div>
+<input id="p_start" placeholder="Lệnh chạy (cho PM2), vd: npm start hoặc node dist/index.js">
+<div class="f2"><input id="p_inst" placeholder="Lệnh cài (trống = tự nhận diện)"><input id="p_build" placeholder="Lệnh build (trống = npm run build nếu có)"></div>
+<div style="display:flex;gap:8px;justify-content:space-between"><button class="r" id="p_del" onclick="delPrj()">Xóa</button><span><button class="g" onclick="dprj.close()">Hủy</button> <button onclick="savePrj()">Lưu</button></span></div></form></dialog>
+
+<script>
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let servers=[],cur=null,status=null,editP=null,tab='home',BK=null,DK=null,SY=null;
+const api=(p,b)=>fetch('/api/vps/'+p,b?{method:'POST',body:JSON.stringify(b)}:{}).then(r=>r.json());
+async function init(){servers=(await api('servers')).servers;if(!cur||!servers.find(s=>s.id===cur))cur=servers[0]&&servers[0].id;drawList();if(cur)select(cur)}
+function drawList(){$('list').innerHTML=servers.map(s=>`<div class="srv ${s.id===cur?'on':''}" onclick="select('${s.id}')"><span><b>${esc(s.name)}</b><br><small>${esc(s.user)}@${esc(s.host)}</small></span><button class="g" onclick="event.stopPropagation();editSrv('${s.id}')">Sửa</button></div>`).join('')||'<span class="mut">Chưa có server</span>'}
+const S=()=>servers.find(s=>s.id===cur);
+async function select(id){cur=id;status=null;BK=DK=SY=null;drawList();draw();refresh();loadTab()}
+async function refresh(){const s=S();if(!s)return;$('stbtn')&&($('stbtn').disabled=true);const r=await api('status',{server:s.id});status=r;draw()}
+function pct(a,b){return b?Math.round(a/b*100):0}
+function draw(){
+ const s=S();if(!s){$('right').innerHTML='<div class="card">Thêm một server để bắt đầu.</div>';return}
+ const k=status&&status.ok?status.kv:null;
+ const stats=k?`<div class="stats">
+  <div class="stat"><span>CPU load (${k.CPUS||'?'} nhân)</span><b>${esc(k.LOAD)}</b></div>
+  <div class="stat"><span>RAM</span><b>${k.MEM_USED}/${k.MEM_TOTAL} MB</b><div class="bar"><i style="width:${pct(k.MEM_USED,k.MEM_TOTAL)}%;background:${pct(k.MEM_USED,k.MEM_TOTAL)>85?'var(--bad)':'var(--ok)'}"></i></div></div>
+  <div class="stat"><span>Ổ đĩa</span><b>${k.DISK_PCT}%</b><div class="bar"><i style="width:${k.DISK_PCT}%;background:${k.DISK_PCT>85?'var(--bad)':k.DISK_PCT>70?'var(--warn)':'var(--ok)'}"></i></div></div>
+  <div class="stat"><span>Hoạt động</span><b style="font-size:14px">${esc(k.UPTIME||'')}</b><span>${esc(k.PM2||k.DOCKER||'')}</span></div></div>
+  <div class="mut" style="margin-top:8px">${esc(k.HOST)} · ${esc(k.OS)} · cron shub: ${k.CRON||0} tác vụ</div>`
+  :`<div class="mut">${status?('Không kết nối được: '+esc(status.error||'')):'Đang kiểm tra…'}</div>`;
+ const c=s.cleanup||{};
+ const homeHtml=`<div class="card"><h2>${esc(s.name)} <span><button class="g" id="stbtn" onclick="refresh()">Làm mới</button></span></h2>${stats}</div>
+ <div class="card"><h2>Dự án (deploy từ GitHub) <button class="g" onclick="editPrj()">+ Thêm dự án</button></h2>
+ ${s.projects.map(p=>{const v=k&&k['PROJ_'+p.id];const vv=v&&v!=='none'?v.split('|'):null;return `<div class="proj"><div class="h"><b>${esc(p.name)}</b><span><span class="tag ${p.auto?'':'off'}">${p.auto?'Tự cập nhật mỗi '+p.intervalMin+' phút':'Cập nhật tay'}</span></span></div>
+ <div class="m">${esc(p.repo)} · nhánh ${esc(p.branch)} · ${esc(p.dir)} · ${esc(p.pm)}<br>${vv?`Đang chạy: <code>${esc(vv[0])}</code> ${esc(vv[1])} (${esc(vv[2])})`:'Chưa cài lên VPS'}</div>
+ <div class="acts"><button onclick="job('deploy',{project:'${p.id}',force:true})">${vv?'Cập nhật ngay':'Cài lần đầu'}</button>
+ <button class="g" onclick="genkey('${p.id}')">Deploy key</button>
+ <button class="g" onclick="job('rollback',{project:'${p.id}'},1)">Quay lại bản trước</button>
+ <button class="g" onclick="toggleAuto('${p.id}',${!p.auto})">${p.auto?'Tắt tự cập nhật':'Bật tự cập nhật'}</button>
+ <button class="g" onclick="logs('${p.id}')">Nhật ký</button><button class="g" onclick="editPrj('${p.id}')">Sửa</button></div></div>`}).join('')||'<span class="mut">Chưa có dự án. Bấm "+ Thêm dự án", điền repo GitHub rồi "Cài lần đầu".</span>'}
+ <p class="mut">Repo private: bấm "Deploy key" để tạo khóa trên VPS, rồi thêm vào GitHub (Settings → Deploy keys, chỉ đọc). Tự cập nhật chạy bằng cron ngay trên VPS nên vẫn chạy khi Mac tắt. Build lỗi thì mã tự về bản cũ, tiến trình đang chạy không bị đụng.</p></div>
+ <div class="card"><h2>Dọn rác server <span class="tag ${c.enabled?'':'off'}">${c.enabled?'Tự động lúc '+c.hour+'h mỗi ngày':'Chưa bật tự động'}</span></h2>
+ <div class="mut" style="margin-bottom:8px">Dọn: cache apt, nhật ký systemd/log cũ, file tạm, Docker container/image/cache không dùng quá hạn (không đụng volume), nhật ký PM2, cache npm/pip. Ổ đĩa ≥85% kiểm tra mỗi giờ và dọn khẩn cấp; ≥90% dọn mạnh hơn.</div>
+ <div class="f2" style="max-width:360px"><div><label class="k">Giữ dữ liệu (ngày)</label><input id="c_keep" type="number" min="1" max="60" value="${c.keepDays||7}"></div><div><label class="k">Giờ chạy hằng ngày</label><input id="c_hour" type="number" min="0" max="23" value="${c.hour??3}"></div></div>
+ <div class="acts"><button class="g" onclick="job('cleanup',{dry:true})">Xem trước (không xóa)</button><button class="g" onclick="job('cleanup',{dry:false},2)">Dọn ngay</button>
+ <button onclick="setClean(true)">${c.enabled?'Lưu & cập nhật tự động':'Bật dọn rác tự động'}</button>${c.enabled?'<button class="r" onclick="setClean(false)">Tắt</button>':''}</div></div>
+`;render(s,homeHtml)}
+function stream(id,done){const L=$('log');L.textContent='';const es=new EventSource('/api/vps/stream?id='+id);
+ es.onmessage=m=>{const e=JSON.parse(m.data);if(e.t==='log'){L.textContent+=e.s;L.scrollTop=1e9}else{es.close();L.textContent+=`\n[${e.code===0?'Hoàn tất':'Kết thúc với mã lỗi '+e.code}]`;done&&done(e.code)}}}
+async function job(route,extra,confirmLevel){
+ if(confirmLevel===1&&!confirm('Quay lại bản mã trước đó và build lại?'))return;
+ if(confirmLevel===2&&!confirm('Dọn rác thật trên server này? (Có thể bấm "Xem trước" để xem trước)'))return;
+ $('log').textContent='Đang chạy…';const r=await api(route,{server:cur,...extra});if(r.error){$('log').textContent=r.error;return}
+ stream(r.id,()=>refresh())}
+async function toggleAuto(pid,on){if(on&&!confirm('Cài cron trên VPS để tự kiểm tra và cập nhật dự án này?'))return;const r=await api('agent',{server:cur,project:pid,auto:on});if(r.error)return alert(r.error);await init();stream(r.id)}
+async function setClean(on){if(on&&!confirm('Cài cron dọn rác tự động trên VPS?'))return;const r=await api('agent',{server:cur,cleanupEnabled:on,keepDays:+$('c_keep').value,hour:+$('c_hour').value});if(r.error)return alert(r.error);await init();stream(r.id)}
+async function genkey(pid){$('log').textContent='Đang tạo khóa…';const r=await api('genkey',{server:cur,project:pid});$('log').textContent=r.ok?`Deploy key (thêm vào GitHub repo → Settings → Deploy keys, chỉ đọc):\n\n${r.pubkey}`:'Không tạo được khóa: '+(r.error||'')}
+async function logs(pid){$('log').textContent='Đang tải…';$('log').textContent=(await api('logs',{server:cur,project:pid})).out||''}
+function editSrv(id){const s=id&&servers.find(x=>x.id===id);dsrv.dataset.id=s?s.id:'';$('s_name').value=s?s.name:'';$('s_host').value=s?s.host:'';$('s_port').value=s?s.port:22;$('s_user').value=s?s.user:'root';$('s_key').value=s?s.keyPath:'~/.ssh/id_ed25519';$('s_tgt').value=s?s.tgToken:'';$('s_tgc').value=s?s.tgChat:'';$('s_del').style.display=s?'':'none';dsrv.showModal()}
+async function saveSrv(){const r=await api('servers',{id:dsrv.dataset.id||undefined,name:$('s_name').value,host:$('s_host').value.trim(),port:$('s_port').value,user:$('s_user').value.trim(),keyPath:$('s_key').value.trim(),tgToken:$('s_tgt').value.trim(),tgChat:$('s_tgc').value.trim()});if(r.error)return alert(r.error);dsrv.close();cur=r.id;await init();
+ const t=await api('test',{server:cur});alert(t.ok?'Kết nối SSH thành công.\n'+t.out:'Chưa kết nối được SSH:\n'+t.out+'\nKiểm tra key và quyền đăng nhập.')}
+async function delSrv(){if(!confirm('Xóa server khỏi S VPS? (không động tới VPS thật)'))return;await api('servers/delete',{id:dsrv.dataset.id});dsrv.close();cur=null;init()}
+function editPrj(id){const s=S(),p=id&&s.projects.find(x=>x.id===id);dprj.dataset.id=p?p.id:'';const set=(k,v)=>$(k).value=v??'';set('p_name',p&&p.name);$('p_name').disabled=!!p;set('p_pm',p?p.pm:'pm2');set('p_repo',p&&p.repo);set('p_branch',p?p.branch:'main');set('p_dir',p&&p.dir);set('p_start',p&&p.startCmd);set('p_inst',p&&p.installCmd);set('p_build',p&&p.buildCmd);$('p_del').style.display=p?'':'none';dprj.showModal()}
+async function savePrj(){const n=$('p_name').value.trim();const r=await api('projects',{server:cur,id:dprj.dataset.id||undefined,name:n,pm:$('p_pm').value,repo:$('p_repo').value.trim(),branch:$('p_branch').value.trim(),dir:$('p_dir').value.trim()||`~/apps/${n}`,startCmd:$('p_start').value.trim(),installCmd:$('p_inst').value.trim(),buildCmd:$('p_build').value.trim()});if(r.error)return alert(r.error);dprj.close();init()}
+async function delPrj(){if(!confirm('Gỡ dự án khỏi S VPS? (không xóa file trên VPS)'))return;await api('projects/delete',{server:cur,id:dprj.dataset.id});dprj.close();init()}
+
+const TABS=[['home','Tổng quan'],['backup','Backup'],['docker','Docker'],['sys','Tiến trình & hệ thống']];
+function render(s,homeHtml){
+ const prev=$('log')?$('log').textContent:'Chưa có thao tác nào.';
+ const body=tab==='home'?homeHtml:tab==='backup'?backupHtml(s):tab==='docker'?dockerHtml():sysHtml();
+ $('right').innerHTML=`<div class="tabs">${TABS.map(t=>`<button class="${tab===t[0]?'on':''}" data-a="tab" data-v="${t[0]}">${t[1]}</button>`).join('')}</div>${body}<div class="card"><h2>Kết quả / nhật ký</h2><div id="log"></div></div>`;
+ $('log').textContent=prev;if($('b_db')&&BK&&BK.backup)$('b_db').value=BK.backup.dbMode||'none'}
+async function loadTab(){if(!cur)return;
+ if(tab==='backup'){const g=await api('backup/get',{server:cur});const l=await api('backup/list',{server:cur});BK={...g,...l};draw()}
+ if(tab==='docker'){DK=await api('docker/list',{server:cur});draw()}
+ if(tab==='sys'){SY=await api('sys/list',{server:cur});draw()}}
+const fmt=n=>n>1e9?(n/1e9).toFixed(2)+' GB':n>1e6?(n/1e6).toFixed(1)+' MB':Math.round(n/1e3)+' KB';
+function tdate(n){const m=n.match(/^(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d)/);return m?`${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`:n}
+function backupHtml(s){
+ if(!BK)return '<div class="card">Đang tải…</div>';const c=BK.backup||{};
+ const b=BK.list||[];const mir=new Set(BK.mirrored||[]);
+ return `<div class="card"><h2>Cấu hình backup <span class="tag ${c.enabled?'':'off'}">${c.enabled?'Tự động '+c.hour+':30 mỗi ngày':'Chưa bật tự động'}</span></h2>
+ <div class="f2"><div><label class="k">Thư mục cần backup (mỗi dòng 1 đường dẫn; trống = thư mục các dự án)</label><textarea id="b_paths" rows="4" placeholder="~/apps/my-api&#10;/var/www/site">${esc((c.paths||[]).join('\n'))}</textarea></div>
+ <div><label class="k">Loại trừ (mỗi dòng 1 mẫu)</label><textarea id="b_exc" rows="4">${esc((c.exclude||[]).join('\n'))}</textarea></div></div>
+ <div class="f2"><div><label class="k">Cơ sở dữ liệu</label><select id="b_db"><option value="none">Không</option><option value="mysql">MySQL/MariaDB (tất cả DB)</option><option value="postgres">PostgreSQL (tất cả DB)</option><option value="custom">Lệnh dump tùy chỉnh</option></select><input id="b_dbcmd" placeholder="vd: docker exec db pg_dumpall -U postgres" value="${esc(c.dbCmd||'')}"></div>
+ <div><label class="k">Docker volume cần backup (mỗi dòng 1 tên)</label><textarea id="b_vol" rows="3">${esc((c.volumes||[]).join('\n'))}</textarea></div></div>
+ <div class="f2" style="grid-template-columns:repeat(5,1fr)"><div><label class="k">Giữ bản gần nhất</label><input id="b_kd" type="number" min="1" value="${c.keepDaily}"></div><div><label class="k">+ bản mỗi tuần</label><input id="b_kw" type="number" min="0" value="${c.keepWeekly}"></div><div><label class="k">+ bản mỗi tháng</label><input id="b_km" type="number" min="0" value="${c.keepMonthly}"></div><div><label class="k">Giờ chạy</label><input id="b_h" type="number" min="0" max="23" value="${c.hour}"></div><div><label class="k">Giữ trên Mac</label><input id="b_mk" type="number" min="1" value="${c.mirrorKeep}"></div></div>
+ <label><input type="checkbox" id="b_git" style="width:auto" ${c.includeGit!==false?'checked':''}> Gồm thư mục .git (giữ lịch sử commit)</label> &nbsp; <label><input type="checkbox" id="b_mir" style="width:auto" ${c.mirror?'checked':''}> Tự đồng bộ bản mới về Mac (mỗi 30 phút khi S Hub mở)</label>
+ <div class="acts" style="margin-top:10px"><button data-a="bk-save">Lưu cấu hình</button><button class="g" data-a="bk-run">Backup ngay</button><button class="g" data-a="bk-sched" data-v="${c.enabled?0:1}">${c.enabled?'Tắt backup tự động':'Bật backup tự động'}</button>${c.enabled?'<button class="g" data-a="bk-sched" data-v="1">Cập nhật lịch</button>':''}<button class="g" data-a="bk-mirror">Đồng bộ về Mac ngay</button></div>
+ <p class="mut">Backup lưu trên VPS tại ~/.shub/backups, nén, có checksum, tự kiểm tra đọc được. Phiên bản giữ theo quy tắc: N bản gần nhất + 1 bản mỗi tuần + 1 bản mỗi tháng; bản ghim không bị xóa. Bản đồng bộ về Mac nằm ở: ${esc(BK.mirrorDir||'')}</p></div>
+ <div class="card"><h2>Các phiên bản backup <span class="mut">${b.length} bản · ${fmt(BK.total||0)} đã dùng · trống ${fmt(BK.free||0)}</span> <button class="g" data-a="bk-reload">Làm mới</button></h2>
+ ${BK.ok===false?`<div class="mut">Lỗi: ${esc(BK.error)}</div>`:''}
+ <table><tr><th>Thời điểm</th><th>Loại</th><th>Dung lượng</th><th>Phiên bản mã nguồn</th><th>Thao tác</th></tr>
+ ${b.map(x=>`<tr><td>${x.pinned?'<span class="pin">📌</span> ':''}${tdate(x.name)}${mir.has(x.name)?' <span class="tag">đã có trên Mac</span>':''}</td><td>${esc(x.label)}</td><td>${fmt(x.bytes)}</td><td class="mut">${esc((x.commits||'').split(',').join(' · '))}</td>
+ <td class="sm"><button class="g" data-a="bk-act" data-v="contents" data-n="${esc(x.name)}">Xem</button><button class="g" data-a="bk-act" data-v="verify" data-n="${esc(x.name)}">Kiểm tra</button><button class="g" data-a="bk-dl" data-n="${esc(x.name)}">Tải về Mac</button><button class="g" data-a="bk-act" data-v="restore-tmp" data-n="${esc(x.name)}">Giải nén thử</button><button class="g" data-a="bk-act" data-v="restore-inplace" data-n="${esc(x.name)}">Khôi phục đè</button><button class="g" data-a="bk-act" data-v="${x.pinned?'unpin':'pin'}" data-n="${esc(x.name)}">${x.pinned?'Bỏ ghim':'Ghim'}</button><button class="r" data-a="bk-act" data-v="delete" data-n="${esc(x.name)}">Xóa</button></td></tr>`).join('')||'<tr><td colspan="5" class="mut">Chưa có bản backup nào. Bấm "Backup ngay".</td></tr>'}</table>
+ <p class="mut">"Khôi phục đè" chỉ khôi phục mã nguồn/file về đường dẫn gốc, và tự tạo bản backup an toàn (được ghim) ngay trước đó. Dump DB và volume nằm trong bản backup, dùng "Giải nén thử" để lấy ra và nạp thủ công.</p></div>`}
+function dockerHtml(){
+ if(!DK)return '<div class="card">Đang tải Docker…</div>';if(DK.nodocker)return '<div class="card">VPS này chưa cài Docker.</div>';
+ if(DK.error)return `<div class="card">${esc(DK.error)}</div>`;
+ const st={};(DK.stats||[]).forEach(x=>st[x.Name]=x);
+ const proj={};(DK.containers||[]).forEach(c=>{const m=(c.Labels||'').match(/com\.docker\.compose\.project=([^,]+)/);(proj[m?m[1]:'']=proj[m?m[1]:'']||[]).push(c)});
+ const row=c=>{const x=st[c.Names]||{};const up=c.State==='running';return `<tr><td><b>${esc(c.Names)}</b><br><span class="mut">${esc(c.Image)}</span></td><td>${up?'🟢':'⚪'} ${esc(c.Status)}<br><span class="mut">${esc(c.Ports||'')}</span></td><td class="mut">${x.CPUPerc?esc(x.CPUPerc)+' · '+esc(x.MemUsage):''}</td><td class="sm">${up?`<button class="g" data-a="dk" data-v="restart" data-i="${esc(c.Names)}">Restart</button><button class="g" data-a="dk" data-v="stop" data-i="${esc(c.Names)}">Dừng</button>`:`<button class="g" data-a="dk" data-v="start" data-i="${esc(c.Names)}">Chạy</button>`}<button class="g" data-a="dk" data-v="logs" data-i="${esc(c.Names)}">Log</button><button class="g" data-a="dk" data-v="inspect" data-i="${esc(c.Names)}">Chi tiết</button><button class="r" data-a="dk" data-v="rm" data-i="${esc(c.Names)}">Xóa</button></td></tr>`};
+ const groups=Object.keys(proj).sort();
+ return `<div class="card"><h2>Container <span class="mut">${(DK.containers||[]).length} container</span> <button class="g" data-a="dk-reload">Làm mới</button></h2>
+ ${groups.map(g=>`<div class="sec"><b>${g?'Compose: '+esc(g):'Container riêng lẻ'}</b> ${g?`<span class="sm"><button class="g" data-a="dkp" data-v="compose-pull" data-p="${esc(g)}">Cập nhật image + chạy lại</button><button class="g" data-a="dkp" data-v="compose-restart" data-p="${esc(g)}">Restart</button><button class="g" data-a="dkp" data-v="compose-up" data-p="${esc(g)}">Up</button><button class="g" data-a="dkp" data-v="compose-logs" data-p="${esc(g)}">Log</button><button class="r" data-a="dkp" data-v="compose-down" data-p="${esc(g)}">Down</button></span>`:''}<table>${proj[g].map(row).join('')}</table></div>`).join('')||'<span class="mut">Không có container</span>'}</div>
+ <div class="card"><h2>Dung lượng Docker</h2>${(DK.df||[]).map(x=>`<span class="stat" style="display:inline-block;margin:0 8px 8px 0"><span>${esc(x.Type)}</span><b style="font-size:14px">${esc(x.Size)}</b><span>có thể thu hồi ${esc(x.Reclaimable)}</span></span>`).join('')}
+ <div class="acts"><button class="g" data-a="dk" data-v="prune-preview" data-i="">Xem trước dọn</button><button class="g" data-a="dk" data-v="prune" data-i="" data-c="Dọn container đã dừng, image không dùng và build cache? (không xóa volume)">Dọn Docker (an toàn)</button><button class="r" data-a="dk" data-v="prune-all-images" data-i="" data-c="Xóa TẤT CẢ image không có container nào dùng? Lần chạy sau phải tải lại.">Xóa mọi image không dùng</button></div></div>
+ <div class="card"><h2>Image (${(DK.images||[]).length}) · image không gắn thẻ: ${DK.dangling||0}</h2><table>${(DK.images||[]).map(i=>`<tr><td>${esc(i.Repository)}:${esc(i.Tag)}</td><td class="mut">${esc(i.Size)} · ${esc(i.CreatedSince)}</td><td class="sm"><button class="r" data-a="dk" data-v="img-rm" data-i="${esc(i.ID)}">Xóa</button></td></tr>`).join('')}</table></div>
+ <div class="card"><h2>Volume (${(DK.volumes||[]).length})</h2><table>${(DK.volumes||[]).map(v=>`<tr><td>${esc(v.Name)}</td><td class="mut">${esc(v.Driver)}</td><td class="sm"><button class="r" data-a="dk" data-v="vol-rm" data-i="${esc(v.Name)}" data-c="XÓA VOLUME mất dữ liệu vĩnh viễn. Đã backup chưa? Tiếp tục xóa?">Xóa</button></td></tr>`).join('')}</table></div>`}
+function sysHtml(){
+ if(!SY)return '<div class="card">Đang tải…</div>';
+ return `<div class="card"><h2>Tiến trình PM2 <button class="g" data-a="sy-reload">Làm mới</button> <button class="g" data-a="sy" data-v="pm2-flush">Xóa nhật ký PM2</button></h2>
+ <table>${(SY.pm2||[]).map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${p.status==='online'?'🟢':'🔴'} ${esc(p.status)}</td><td class="mut">CPU ${p.cpu??'-'}% · RAM ${fmt(p.mem||0)} · restart ${p.restarts??0}</td><td class="sm"><button class="g" data-a="sy" data-v="pm2-restart" data-n="${esc(p.name)}">Restart</button><button class="g" data-a="sy" data-v="pm2-stop" data-n="${esc(p.name)}">Dừng</button><button class="g" data-a="sy" data-v="pm2-start" data-n="${esc(p.name)}">Chạy</button><button class="g" data-a="sy" data-v="pm2-logs" data-n="${esc(p.name)}">Log</button></td></tr>`).join('')||'<tr><td class="mut">Không có tiến trình PM2</td></tr>'}</table></div>
+ <div class="card"><h2>Dịch vụ systemd lỗi</h2>${(SY.failed||[]).map(f=>`<div class="row" style="display:flex;justify-content:space-between;padding:5px 0"><span>🔴 ${esc(f)}</span><span class="sm"><button class="g" data-a="sy" data-v="svc-status" data-n="${esc(f.replace(/\.service$/,''))}">Trạng thái</button><button class="g" data-a="sy" data-v="svc-restart" data-n="${esc(f.replace(/\.service$/,''))}">Restart</button></span></div>`).join('')||'<span class="mut">Không có dịch vụ nào lỗi</span>'}</div>
+ <div class="card"><h2>Cổng đang mở</h2><div class="mut">${esc(SY.ports||'')}</div><table>${(SY.portProc||[]).map(l=>`<tr><td class="mut">${esc(l)}</td></tr>`).join('')}</table></div>
+ <div class="card"><h2>Phân tích dung lượng ổ đĩa</h2><select id="sy_dir" style="max-width:240px">${(SY.diskDirs||[]).map(d=>`<option>${d}</option>`).join('')}</select><button data-a="sy-disk">Phân tích</button></div>
+ <div class="card"><h2>Cron trên VPS</h2><pre class="mut" style="white-space:pre-wrap;margin:0">${esc((SY.cron||[]).join('\n')||'(trống)')}</pre></div>`}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,v=b.dataset.v;
+ const run=async(route,x,conf)=>{if(conf&&!confirm(conf))return;$('log').textContent='Đang chạy…';const r=await api(route,{server:cur,...x});if(r.error){$('log').textContent=r.error;return}stream(r.id,()=>{if(/^backup/.test(route))loadTab();if(/^docker/.test(route)&&!/logs|inspect|preview/.test(x.act||''))setTimeout(loadTab,500)})};
+ if(a==='tab'){tab=v;draw();loadTab();return}
+ if(a==='bk-reload')return loadTab();
+ if(a==='bk-save'){const r=await api('backup/config',{server:cur,config:{paths:$('b_paths').value,exclude:$('b_exc').value,volumes:$('b_vol').value,dbMode:$('b_db').value,dbCmd:$('b_dbcmd').value,includeGit:$('b_git').checked,mirror:$('b_mir').checked,keepDaily:$('b_kd').value,keepWeekly:$('b_kw').value,keepMonthly:$('b_km').value,hour:$('b_h').value,mirrorKeep:$('b_mk').value}});if(r.error)return alert(r.error);$('log').textContent='Đã lưu cấu hình backup. Nếu đã bật tự động, bấm "Cập nhật lịch" để áp dụng lên VPS.';return loadTab()}
+ if(a==='bk-run')return run('backup/run',{},'Chạy backup ngay trên VPS?');
+ if(a==='bk-mirror')return run('backup/mirror-now',{});
+ if(a==='bk-sched'){const on=v==='1';if(on&&!confirm('Cài cron backup tự động trên VPS (cấu hình hiện tại đã lưu)?'))return;const r=await api('backup/config',{server:cur,config:{paths:$('b_paths').value,exclude:$('b_exc').value,volumes:$('b_vol').value,dbMode:$('b_db').value,dbCmd:$('b_dbcmd').value,includeGit:$('b_git').checked,mirror:$('b_mir').checked,keepDaily:$('b_kd').value,keepWeekly:$('b_kw').value,keepMonthly:$('b_km').value,hour:$('b_h').value,mirrorKeep:$('b_mk').value}});if(r.error)return alert(r.error);return run('agent',{backupEnabled:on,backupHour:+$('b_h').value})}
+ if(a==='bk-dl')return run('backup/download',{name:b.dataset.n});
+ if(a==='bk-act'){let act=v,mode;if(v==='restore-tmp'){act='restore';mode='tmp'}if(v==='restore-inplace'){act='restore';mode='inplace'}
+  const conf=v==='delete'?'Xóa vĩnh viễn bản backup này?':v==='restore-inplace'?'Khôi phục ĐÈ lên đường dẫn gốc trên VPS? Hệ thống tự backup bản hiện tại trước (được ghim). Dump DB/volume không bị đụng.':null;return run('backup/act',{name:b.dataset.n,act,mode},conf)}
+ if(a==='dk-reload')return loadTab();
+ if(a==='dk')return run('docker/act',{act:v,id:b.dataset.i||undefined},b.dataset.c||(v==='rm'?'Xóa container này? (volume giữ nguyên)':v==='img-rm'?'Xóa image này?':null));
+ if(a==='dkp')return run('docker/act',{act:v,project:b.dataset.p},v==='compose-down'?'Dừng và gỡ toàn bộ container của project này? (volume giữ nguyên)':null);
+ if(a==='sy-reload')return loadTab();
+ if(a==='sy')return run('sys/act',{act:v,name:b.dataset.n},v==='svc-restart'?'Restart dịch vụ này?':null);
+ if(a==='sy-disk'){$('log').textContent='Đang phân tích (có thể mất vài chục giây)…';return run('sys/act',{act:'disk',dir:$('sy_dir').value})}
+});
+const dsrv=$('dsrv'),dprj=$('dprj');init();
+</script></body></html>

@@ -1,0 +1,8 @@
+{
+  "name": "test-hub",
+  "version": "1.0.0",
+  "description": "Test Hub - tự động test mã nguồn các repo GitHub trên máy local",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "selftest": "node selftest.js" },
+  "optionalDependencies": { "playwright": "^1.48.0" }
+}
