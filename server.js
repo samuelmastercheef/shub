@@ -18,6 +18,7 @@ const DEFAULT_APPS = [
   { id: 'github', name: 'S GitHub', icon: '🐙', type: 'internal', path: '/github.html', desc: 'Quản lý repo: tạo, public/private, thống kê' },
   { id: 'files', name: 'Kho file', icon: '🗂', type: 'internal', path: '/files.html', desc: 'File tải về, quản lý theo danh mục' },
   { id: 'claude', name: 'S Claude', icon: '✨', type: 'internal', path: '/claude.html', desc: 'Workflow agent, dọn cache, plugin, MCP, artifacts, dự án' },
+  { id: 'creator', name: 'S Creator', icon: '🎬', type: 'internal', path: '/creator.html', desc: 'Tạo content, ảnh, video từ concept và đăng theo lịch qua Socin' },
   { id: 'chat', name: 'S Chat', icon: '💬', type: 'launch', command: 'open -a "S Chat"', desc: 'Chat Telegram đa tài khoản' },
   { id: 'vpn', name: 'S VPN', icon: '🔒', type: 'launch', command: 'open -a "S VPN"', desc: 'VPN riêng WireGuard' },
   { id: 'clean', name: 'S Clean', icon: '🧹', type: 'launch', command: 'open -a "S Clean"', desc: 'Dọn dẹp MacBook' },
@@ -25,7 +26,7 @@ const DEFAULT_APPS = [
 ];
 const APPS = Array.isArray(cfg.apps) && cfg.apps.length ? [...cfg.apps] : [...DEFAULT_APPS];
 if (!APPS.some((a) => a.id === 'vps')) APPS.splice(2, 0, DEFAULT_APPS.find((a) => a.id === 'vps'));
-for (const id of ['github', 'files', 'claude']) if (!APPS.some((a) => a.id === id)) { const i = APPS.findIndex((a) => a.id === 'vps'); APPS.splice(i >= 0 ? i + 1 : APPS.length, 0, DEFAULT_APPS.find((a) => a.id === id)); }
+for (const id of ['github', 'files', 'claude', 'creator']) if (!APPS.some((a) => a.id === id)) { const i = APPS.findIndex((a) => a.id === 'vps'); APPS.splice(i >= 0 ? i + 1 : APPS.length, 0, DEFAULT_APPS.find((a) => a.id === id)); }
 const appById = (id) => APPS.find((a) => a.id === id);
 const WS = expand(cfg.workspace);
 const REPOS = path.join(WS, 'repos');
@@ -318,6 +319,7 @@ const vpsHandle = require('./vps')({ WS, json, body });
 const ghHandle = require('./github')({ WS, cfg, json, body });
 const filesHandle = require('./files')({ WS, cfg, json, body });
 const claudeHandle = require('./claude')({ WS, json, body });
+const creatorHandle = require('./creator')({ WS, json, body });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -330,6 +332,7 @@ const server = http.createServer(async (req, res) => {
     if (await ghHandle(req, res, u)) return;
     if (await filesHandle(req, res, u)) return;
     if (await claudeHandle(req, res, u)) return;
+    if (await creatorHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!a.startCommand, ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });
