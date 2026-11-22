@@ -137,7 +137,7 @@ module.exports = function init({ WS, json, body }) {
         const s = getSet(); if (b.imageApi !== undefined) { const v = clean(b.imageApi, 200); if (v && !/^https?:\/\/[\w.-]+(:\d+)?(\/[\w./-]*)?$/.test(v)) bad('Địa chỉ server ảnh không hợp lệ'); s.imageApi = v; }
         if (b.engine !== undefined) { if (!['cit', 'say'].includes(b.engine)) bad('Nguồn giọng không hợp lệ'); s.engine = b.engine; }
         if (b.citUrl !== undefined) { const v = clean(b.citUrl, 100).replace(/\/$/, ''); if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d{2,5})?$/.test(v)) bad('Địa chỉ CIT phải là http://127.0.0.1:<cổng> hoặc http://localhost:<cổng>'); s.citUrl = v; }
-        if (b.citVoice !== undefined) { const v = clean(b.citVoice, 80); if (v && !/^[\w .()-]{1,80}$/.test(v)) bad('Mã giọng không hợp lệ'); s.citVoice = v; }
+        if (b.citVoice !== undefined) { const v = clean(b.citVoice, 80); if (v && !/^[\p{L}\p{N} .()_-]{1,80}$/u.test(v)) bad('Mã giọng không hợp lệ'); s.citVoice = v; }
         if (b.voice !== undefined) { const v = clean(b.voice, 40); if (!/^[\w ().-]{1,40}$/.test(v)) bad('Tên giọng không hợp lệ'); s.voice = v; }
         if (b.socinBaseUrl !== undefined) s.socin.baseUrl = clean(b.socinBaseUrl, 200).replace(/\/$/, ''); if (b.socinToken) { if (!/^[\w.~+-]{16,200}$/.test(b.socinToken)) bad('Token không hợp lệ'); s.socin.token = b.socinToken; } if (b.clearToken) s.socin.token = '';
         wj(SETF, s, 0o600); return json(res, 200, { ok: true, settings: pubSet() }), true; }

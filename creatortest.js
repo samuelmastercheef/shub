@@ -44,9 +44,9 @@ else echo ok; fi\n`, { mode: 0o755 });
     // giọng CIT
     const cp = cit.address().port;
     ok((await post('/api/cr/settings/save', { citUrl: 'http://evil.example.com' }, P)).s === 400, 'chặn địa chỉ CIT không phải localhost');
-    await post('/api/cr/settings/save', { engine: 'cit', citUrl: 'http://127.0.0.1:' + cp, citVoice: 'thuy-dung' }, P);
+    await post('/api/cr/settings/save', { engine: 'cit', citUrl: 'http://127.0.0.1:' + cp, citVoice: 'Hải Đăng' }, P);
     const vl2 = (await get('/api/cr/voice/list', P)); const vj = JSON.parse(vl2.t); ok(vj.health.ok && vj.voices[0].id === 'thuy-dung', 'liệt kê giọng CIT');
-    const vt = await post('/api/cr/voice/test', { text: 'thử' }, P); ok(vt.j.ok && vt.j.audio.startsWith('data:audio/mpeg;base64,') && citHits.length === 1 && citHits[0].voice_id === 'thuy-dung', 'nghe thử giọng CIT');
+    const vt = await post('/api/cr/voice/test', { text: 'thử' }, P); ok(vt.j.ok && vt.j.audio.startsWith('data:audio/mpeg;base64,') && citHits.length === 1 && citHits[0].voice_id === 'Hải Đăng', 'nghe thử giọng CIT');
     await post('/api/cr/video/render', { id, voice: true, captions: false }, P);
     for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
     ok(v.video.status === 'done' && v.video.voiceEngine === 'CIT' && citHits.length >= 3, 'dựng video dùng giọng CIT: ' + JSON.stringify(v.video).slice(0, 100));
