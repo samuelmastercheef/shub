@@ -38,3 +38,13 @@ Chỉ nghe ở 127.0.0.1. Kết quả lưu ở ~/TestHubWorkspace/reports/.
 Brand Socin: teal `#0B7F8F`, vàng `#FFB020`, nền tối `#06111C`, font Be Vietnam Pro, tự theo chế độ sáng/tối của máy.
 Logo ở `public/brand/` (`icon.svg`, `logo.svg`, `icon-1024.png`). Màu và kiểu nút nằm trong `public/brand.css`.
 Trang Tổng quan theo quy trình: Kiểm thử → Dựng app → Triển khai. Cổng bận thì S Hub tự thử cổng kế tiếp.
+
+
+## Mới: S GitHub, Kho file, S Claude
+
+- **S GitHub** (`/github.html`): liệt kê repo trên tài khoản (cần `githubToken` hoặc `gh auth login`; scope `repo`, thêm `delete_repo` nếu muốn xóa). Tab Repo (lọc, sắp xếp, phân trang, chuyển Public/Private, chi tiết, tải ZIP, lưu trữ, xóa), Tạo repo (cá nhân/tổ chức, README, .gitignore, giấy phép), Thống kê (biểu đồ). Chuyển sang Public và xóa đều bắt gõ lại tên để xác nhận.
+- **Kho file** (`/files.html`): mọi file tải về nằm trong `~/TestHubWorkspace/downloads/<danh mục>` (backup VPS, báo cáo, mã nguồn, build, ...). Tạo/xóa danh mục, chuyển file, ghi chú, tìm kiếm, sắp xếp, phân trang, mở trong Finder, thống kê. Nguồn ngoài chỉ đọc (mặc định `~/SPrimeBuilds/_out`) cấu hình bằng `fileSources` trong config.json.
+- **S Claude** (`/claude.html`): workflow agent (nhập JSON từ Flow Claude, xem sơ đồ, xuất spec Markdown, chạy bằng `claude -p`), dọn cache/log do Claude sinh ra (theo số ngày, không đụng cấu hình), danh mục tài liệu/agent/skill, plugin, MCP (token được che), artifacts, dự án.
+- S Test Hub có tab Kết quả / Nhật ký / Lịch sử (phân trang, lọc) / Thống kê.
+
+Cập nhật trên Mac: `cd ~/shub && git pull && ./start.command`. Test: `node newtest.js`.

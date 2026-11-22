@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Claude</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><script src="/charts.js"></script><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+input,select,textarea{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit;max-width:100%}
+textarea{width:100%;min-height:120px;font:12.5px ui-monospace,Menlo,monospace}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>input{flex:1;min-width:140px}.mut{color:var(--mut)}
+button.s{padding:4px 10px;font-size:12.5px}.err{color:var(--bad)}[hidden]{display:none!important}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;background:var(--off-bg);color:var(--mut);margin:0 4px 2px 0}
+pre.o{background:var(--logbg);color:var(--logtx);padding:10px;border-radius:8px;white-space:pre-wrap;max-height:260px;overflow:auto;font:12px/1.4 ui-monospace,Menlo,monospace}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:420px}
+svg.fg .nd{fill:var(--card);stroke:var(--line)}svg.fg text{fill:var(--tx);font-size:11.5px}svg.fg path{stroke:var(--mut);fill:none}
+</style></head><body>
+<div class="tabs" id="tabs"><button data-t="ov" class="on">Tổng quan</button><button data-t="wf">Workflow agent</button><button data-t="cache">Dọn cache</button><button data-t="docs">Tài liệu</button><button data-t="pm">Plugin & MCP</button><button data-t="art">Artifacts</button><button data-t="prj">Dự án</button></div>
+<div class="tp" id="tp_ov"></div>
+<div class="tp" id="tp_wf" hidden>
+ <div class="card"><h2>Workflow đã lưu</h2><div id="wfl"></div><div id="wfp"></div>
+  <div class="row" style="margin-top:10px"><button class="cta" id="wfi">+ Nhập workflow (JSON từ Flow Claude)</button></div></div>
+ <div class="card" id="wfv" hidden></div></div>
+<div class="tp" id="tp_cache" hidden></div>
+<div class="tp" id="tp_docs" hidden></div>
+<div class="tp" id="tp_pm" hidden></div>
+<div class="tp" id="tp_art" hidden></div>
+<div class="tp" id="tp_prj" hidden></div>
+<dialog id="dlg" style="max-width:680px;width:92vw"><div id="dbody"></div><div style="text-align:right;margin-top:12px"><button class="ghost" onclick="dlg.close()">Đóng</button></div></dialog>
+<div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=UI.esc;
+const say=(m,bad)=>{const x=$('msg');x.textContent=m;x.className=bad?'err':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,6000)};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||'Lỗi');return d};
+const LOAD={ov,wf,cache,docs,pm,art,prj};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tp').forEach(x=>x.hidden=x.id!=='tp_'+b.dataset.t);LOAD[b.dataset.t]()});
+const go=t=>document.querySelector(`[data-t=${t}]`).click();
+const pageOf=(arr,p,fn,size=8)=>({rows:arr.slice((p-1)*size,p*size),pg:UI.pager(arr.length,p,size,fn)});
+
+/* ---- Tổng quan ---- */
+async function ov(){const d=await api('/api/cl/overview');
+ const warn=d.found.claudeDir||d.found.desktop?'':'<div class="card err">Chưa thấy thư mục ~/.claude hay app Claude Desktop trên máy này.</div>';
+ $('tp_ov').innerHTML=warn+`<div class="kpis">${UI.kpi('Workflow',d.flows)}${UI.kpi('Plugin',d.plugins)}${UI.kpi('MCP server',d.mcp)}${UI.kpi('Tài liệu',d.docs)}${UI.kpi('Artifacts',d.artifacts)}${UI.kpi('Dự án',d.projects)}</div>
+ <div class="grid2"><div class="card"><h2>Rác có thể dọn · ${UI.fmtBytes(d.cacheBytes)}</h2>${UI.donut(d.cache.filter(c=>c.bytes>0).map(c=>({label:c.label,value:c.bytes})),{center:UI.fmtBytes(d.cacheBytes),sub:'có thể dọn',fmt:UI.fmtBytes})}<div class="row" style="margin-top:8px"><button class="cta" onclick="go('cache')">Dọn ngay</button></div></div>
+ <div class="card"><h2>Dung lượng ~/.claude</h2>${UI.hbars([{label:'Toàn bộ ~/.claude',value:d.claudeBytes},{label:'Transcript phiên',value:d.sessionBytes},{label:'Rác dọn được',value:d.cacheBytes}],{fmt:UI.fmtBytes})}</div></div>`;UI.countUp($('tp_ov'))}
+
+/* ---- Workflow ---- */
+let WP=1,WF=[];
+async function wf(p){if(typeof p==='number')WP=p;WF=(await api('/api/cl/flows')).items;const {rows,pg}=pageOf(WF,WP,'wf',6);
+ $('wfl').innerHTML=`<table><thead><tr><th>Tên</th><th>Nhóm</th><th>Node</th><th>Cập nhật</th><th></th></tr></thead><tbody>${rows.map(f=>`<tr><td><b>${E(f.name)}</b><div class="mut" style="font-size:12px">${E(f.summary)}</div></td><td>${E(f.category)}</td><td>${f.nodes} <span class="mut">(${Object.entries(f.types).map(([k,v])=>k+' '+v).join(', ')})</span></td><td>${UI.ago(new Date(f.updated).toISOString())}</td><td style="white-space:nowrap"><button class="ghost s" onclick="wfview('${f.id}')">Xem / chạy</button> <button class="ghost s" style="color:var(--bad)" onclick="wfdel('${f.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan=5 class="mut">Chưa có workflow. Bấm "Nhập workflow" và dán JSON xuất từ Flow Claude.</td></tr>'}</tbody></table>`;$('wfp').innerHTML=pg}
+$('wfi').onclick=()=>{$('dbody').innerHTML=`<h2>Nhập workflow</h2><p class="mut">Trong Flow Claude, bấm "JSON / Spec" → JSON, copy rồi dán vào đây.</p><textarea id="wj" placeholder='{"name":"...","nodes":[...],"edges":[...]}'></textarea><div class="row" style="margin-top:8px"><input id="wc" placeholder="Nhóm (vd: CSKH)"><button class="cta" id="wok">Lưu workflow</button></div>`;dlg.showModal();
+ $('wok').onclick=async()=>{try{const f=JSON.parse($('wj').value);f.category=$('wc').value||f.category;const d=await api('/api/cl/flow/save',{flow:f});dlg.close();say('Đã lưu: '+d.flow.name);wf()}catch(e){say(e.message,1)}}};
+async function wfdel(id){const n=prompt('Gõ đúng mã "'+id+'" để xóa workflow:');if(n===null)return;try{await api('/api/cl/flow/delete',{id,confirm:n});wf()}catch(e){say(e.message,1)}}
+function graph(f){const lv={};const ind={};f.nodes.forEach(n=>ind[n.id]=0);f.edges.forEach(e=>ind[e.to]++);let q=f.nodes.filter(n=>!ind[n.id]).map(n=>n.id);q.forEach(i=>lv[i]=0);const seen=new Set(q);while(q.length){const i=q.shift();f.edges.filter(e=>e.from===i).forEach(e=>{lv[e.to]=Math.max(lv[e.to]||0,lv[i]+1);if(!--ind[e.to])q.push(e.to)})}
+ const cols={};f.nodes.forEach(n=>(cols[lv[n.id]||0]=cols[lv[n.id]||0]||[]).push(n));const pos={};let W=0,H=0;Object.entries(cols).forEach(([c,ns])=>ns.forEach((n,i)=>{pos[n.id]={x:10+c*170,y:10+i*58};W=Math.max(W,10+c*170+150);H=Math.max(H,10+i*58+44)}));
+ const color={trigger:'#3FCB8A',claude:'#FF8A5B',agent:'#0B7F8F',tool:'#8FA6B4',code:'#C9B020',condition:'#FFB020',human:'#C4547F',output:'#8E7CFF'};
+ return `<svg class="fg" viewBox="0 0 ${W+10} ${H+10}" style="width:100%;min-width:${Math.min(W,760)}px">${f.edges.map(e=>{const a=pos[e.from],b=pos[e.to];return `<path d="M${a.x+150} ${a.y+22} C${a.x+165} ${a.y+22} ${b.x-15} ${b.y+22} ${b.x} ${b.y+22}"/>`}).join('')}${f.nodes.map(n=>{const p=pos[n.id];return `<g><rect class="nd" x="${p.x}" y="${p.y}" width="150" height="44" rx="8"/><rect x="${p.x}" y="${p.y}" width="5" height="44" rx="2" fill="${color[n.type]}"/><text x="${p.x+12}" y="${p.y+19}">${E(n.name.slice(0,20))}</text><text x="${p.x+12}" y="${p.y+34}" style="fill:var(--mut);font-size:10px">${n.type}</text></g>`}).join('')}</svg>`}
+async function wfview(id){const d=await api('/api/cl/flow?md=1&id='+id),f=d.flow;$('wfv').hidden=false;
+ $('wfv').innerHTML=`<h2>${E(f.name)}</h2><p class="mut">${E(f.summary)}</p><div style="overflow:auto">${graph(f)}</div>
+ <div class="row" style="margin-top:10px"><input id="wi" placeholder="Dữ liệu đầu vào (tuỳ chọn, thay cho node Đầu vào)"><button class="cta" id="wr">Chạy bằng Claude Code</button><button class="ghost" id="wm">Xem spec Markdown</button></div><div id="wo"></div>`;
+ $('wm').onclick=()=>{$('wo').innerHTML=`<pre class="o">${E(d.markdown)}</pre>`};
+ $('wr').onclick=async()=>{$('wr').disabled=true;$('wo').innerHTML='<span class="mut">Đang chạy từng node bằng lệnh "claude -p"… có thể mất vài phút.</span>';try{const r=await fetch('/api/cl/flow/run',{method:'POST',body:JSON.stringify({id,input:$('wi').value})}).then(r=>r.json());
+  $('wo').innerHTML=(r.error?`<div class="err">${E(r.error)}</div>`:'')+(r.logs||[]).map(l=>`<div style="margin:8px 0"><b>${E(l.name)}</b> <span class="badge ${l.status==='done'?'pub':l.status==='error'?'arc':'prv'}">${l.status}</span>${l.ms?` <span class="mut">${(l.ms/1000).toFixed(1)}s</span>`:''}${l.out?`<pre class="o">${E(l.out)}</pre>`:''}</div>`).join('')}catch(e){say(e.message,1)}$('wr').disabled=false};
+ $('wfv').scrollIntoView({behavior:'smooth'})}
+
+/* ---- Dọn cache ---- */
+let CD={};
+async function cache(){const qs=Object.entries(CD).map(([k,v])=>`d_${k}=${v}`).join('&');const d=await api('/api/cl/cache?'+qs),tot=d.items.reduce((a,b)=>a+b.bytes,0);
+ $('tp_cache').innerHTML=`<div class="card"><h2>Dọn rác Claude sinh ra · ${UI.fmtBytes(tot)}</h2><p class="mut">Chỉ xóa cache, log, snapshot theo số ngày tuổi. Không đụng cấu hình, plugin, MCP, CLAUDE.md hay skill.</p>
+ <table><thead><tr><th></th><th>Mục</th><th>Cũ hơn (ngày)</th><th>File</th><th>Dung lượng</th></tr></thead><tbody>${d.items.map(c=>`<tr><td><input type="checkbox" class="ck" value="${c.id}" ${c.safe&&c.bytes?'checked':''}></td><td><b>${E(c.label)}</b>${c.safe?'':' <span class="badge arc">nhạy cảm</span>'}<div class="mut" style="font-size:12px">${E(c.desc)}</div></td><td><input type="number" min="0" style="width:80px" value="${c.days}" onchange="CD['${c.id}']=this.value;cache()"> <span class="mut">${c.days?'':'(0 = tất cả)'}</span></td><td>${c.files}</td><td>${UI.fmtBytes(c.bytes)}</td></tr>`).join('')}</tbody></table>
+ <div class="row" style="margin-top:12px"><button class="cta" id="cc">Dọn mục đã chọn</button></div></div>
+ <div class="card"><h2>Biểu đồ</h2>${UI.hbars(d.items.filter(c=>c.bytes>0).map(c=>({label:c.label,value:c.bytes})),{fmt:UI.fmtBytes})}</div>`;
+ $('cc').onclick=async()=>{const ids=[...document.querySelectorAll('.ck:checked')].map(x=>x.value);if(!ids.length)return say('Chưa chọn mục nào',1);let confirm='';
+  if(ids.includes('sessions')){confirm=prompt('Xóa transcript phiên cũ sẽ không resume được các phiên đó.\nGõ XOA để xác nhận:')||'';if(confirm!=='XOA')return}
+  try{const r=await api('/api/cl/cache/clean',{ids,days:CD,confirm});say('Đã giải phóng '+UI.fmtBytes(r.results.reduce((a,b)=>a+b.freed,0)));cache()}catch(e){say(e.message,1)}}}
+
+/* ---- Tài liệu ---- */
+let DP=1,DC='';
+async function docs(p){if(typeof p==='number')DP=p;const d=(await api('/api/cl/docs')).items,cats=[...new Set(d.map(x=>x.category))],list=d.filter(x=>!DC||x.category===DC),{rows,pg}=pageOf(list,DP,'docs',10);
+ $('tp_docs').innerHTML=`<div class="card"><div class="row"><select id="dcf"><option value="">Tất cả danh mục</option>${cats.map(c=>`<option ${c===DC?'selected':''}>${E(c)}</option>`).join('')}</select><button class="ghost" id="dadd">+ Thêm tài liệu</button></div>
+ <table><thead><tr><th>Tên</th><th>Danh mục</th><th>Đường dẫn</th><th>Mô tả</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${E(x.name)}</b></td><td><span class="chip">${E(x.category)}</span></td><td class="mut" style="font-size:12px">${E(x.path)}</td><td class="mut" style="font-size:12.5px">${E(x.desc)}</td><td>${x.custom?`<button class="ghost s" onclick="ddel('${x.id}')">Xóa</button>`:''}</td></tr>`).join('')||'<tr><td colspan=5 class="mut">Chưa có tài liệu</td></tr>'}</tbody></table>${pg}</div>
+ <div class="card"><h2>Theo danh mục</h2>${UI.donut(cats.map(c=>({label:c,value:d.filter(x=>x.category===c).length})),{center:d.length+'',sub:'tài liệu'})}</div>`;
+ $('dcf').onchange=e=>{DC=e.target.value;docs(1)};$('dadd').onclick=()=>form('Thêm tài liệu',[['name','Tên'],['category','Danh mục'],['path','Đường dẫn hoặc ghi chú vị trí'],['note','Mô tả']],'/api/cl/doc/save',docs)}
+const ddel=async id=>{await api('/api/cl/doc/delete',{id});docs()};
+function form(title,fields,url,after){$('dbody').innerHTML=`<h2>${title}</h2><div style="display:grid;gap:8px">${fields.map(([k,l])=>`<label>${l}<input id="f_${k}" style="width:100%"></label>`).join('')}</div><div style="margin-top:10px"><button class="cta" id="fok">Lưu</button></div>`;dlg.showModal();
+ $('fok').onclick=async()=>{const b={};fields.forEach(([k])=>b[k]=$('f_'+k).value);try{await api(url,b);dlg.close();after()}catch(e){say(e.message,1)}}}
+
+/* ---- Plugin & MCP ---- */
+async function pm(){const [p,m]=await Promise.all([api('/api/cl/plugins'),api('/api/cl/mcp')]);
+ $('tp_pm').innerHTML=`<div class="card"><h2>Plugin Claude Code (${p.items.length})</h2><table><thead><tr><th>Plugin</th><th>Phiên bản</th><th>Phạm vi</th><th>Trạng thái</th></tr></thead><tbody>${p.items.map(x=>`<tr><td><b>${E(x.id)}</b></td><td>${E(x.version)}</td><td>${E(x.scope)}</td><td><span class="badge ${x.enabled?'pub':'prv'}">${x.enabled?'Bật':'Tắt'}</span></td></tr>`).join('')||'<tr><td colspan=4 class="mut">Chưa cài plugin nào</td></tr>'}</tbody></table></div>
+ <div class="card"><h2>MCP server (${m.items.length})</h2><p class="mut">Khóa/token được che. Chỉ xem; chỉnh sửa bằng <code>claude mcp</code> hoặc file cấu hình.</p><table><thead><tr><th>Tên</th><th>Nguồn</th><th>Loại</th><th>Lệnh / URL</th></tr></thead><tbody>${m.items.map(x=>`<tr><td><b>${E(x.name)}</b></td><td>${E(x.source)}</td><td>${E(x.type)}</td><td style="font-size:12px" class="mut">${E(x.target)}${Object.keys(x.env).length?'<br>env: '+Object.entries(x.env).map(([k,v])=>E(k)+'='+E(v)).join(', '):''}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">Chưa cấu hình MCP</td></tr>'}</tbody></table></div>`}
+
+/* ---- Artifacts & Dự án ---- */
+let AP=1;
+async function art(p){if(typeof p==='number')AP=p;const d=(await api('/api/cl/artifacts')).items,{rows,pg}=pageOf(d,AP,'art',10);
+ $('tp_art').innerHTML=`<div class="card"><div class="row"><button class="cta" id="aadd">+ Thêm artifact</button><span class="mut">Lưu liên kết artifact claude.ai theo danh mục để tìm lại nhanh.</span></div>
+ <table><thead><tr><th>Tên</th><th>Danh mục</th><th>Thẻ</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${E(x.name)}</b><div class="mut" style="font-size:12px">${E(x.note)}</div></td><td><span class="chip">${E(x.category)}</span></td><td>${(x.tags||[]).map(t=>`<span class="chip">${E(t)}</span>`).join('')}</td><td style="white-space:nowrap">${x.url?`<a href="${E(x.url)}" target="_blank" rel="noopener"><button class="ghost s">Mở</button></a> `:''}<button class="ghost s" onclick="adel('${x.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan=4 class="mut">Chưa có artifact</td></tr>'}</tbody></table>${pg}</div>`;
+ $('aadd').onclick=()=>form('Thêm artifact',[['name','Tên'],['url','Liên kết https://claude.ai/artifact/…'],['category','Danh mục'],['tags','Thẻ (cách nhau dấu phẩy)'],['note','Ghi chú']],'/api/cl/artifact/save',art)}
+const adel=async id=>{await api('/api/cl/artifact/delete',{id});art()};
+let JP=1;
+async function prj(p){if(typeof p==='number')JP=p;const d=(await api('/api/cl/projects')).items,{rows,pg}=pageOf(d,JP,'prj',10);
+ $('tp_prj').innerHTML=`<div class="card"><div class="row"><button class="cta" id="padd">+ Thêm dự án</button><span class="mut">Dự án Claude Code tự nhận từ ~/.claude; thêm tay các Project claude.ai.</span></div>
+ <table><thead><tr><th>Dự án</th><th>Nguồn</th><th>Phiên</th><th>Dung lượng</th><th>Hoạt động</th><th></th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${E(x.name)}</b><div class="mut" style="font-size:12px">${E(x.note||'')}</div></td><td><span class="chip">${E(x.source)}</span></td><td>${x.sessions}</td><td>${UI.fmtBytes(x.bytes)}</td><td>${x.last?UI.ago(new Date(x.last).toISOString()):'—'}</td><td>${x.url?`<a href="${E(x.url)}" target="_blank" rel="noopener"><button class="ghost s">Mở</button></a> `:''}${x.custom?`<button class="ghost s" onclick="pdel('${x.key}')">Xóa</button>`:''}</td></tr>`).join('')||'<tr><td colspan=6 class="mut">Chưa có dự án</td></tr>'}</tbody></table>${pg}</div>
+ <div class="card"><h2>Dung lượng phiên theo dự án</h2>${UI.hbars(d.filter(x=>x.bytes).sort((a,b)=>b.bytes-a.bytes).slice(0,8).map(x=>({label:x.name.split('/').pop()||x.name,value:x.bytes})),{fmt:UI.fmtBytes})}</div>`;
+ $('padd').onclick=()=>form('Thêm dự án',[['name','Tên dự án'],['url','Liên kết https:// (tuỳ chọn)'],['note','Ghi chú']],'/api/cl/project/save',prj)}
+const pdel=async id=>{await api('/api/cl/project/delete',{id});prj()};
+ov().catch(e=>say(e.message,1));
+</script></body></html>

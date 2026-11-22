@@ -100,7 +100,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const nonPinned = L.list.filter((x) => !x.pinned).length;
   ok(nonPinned === 2 && L.list.some((x) => x.pinned), 'giữ 2 bản mới nhất + bản ghim, xóa bản cũ (có ' + L.list.length + ' bản)');
   o = await runJob('backup/download', { server: 'test', name: L.list[0].name });
-  ok(/toàn vẹn/.test(o) && fs.existsSync(path.join(ws, 'backups', 'test', L.list[0].name)), 'tải về Mac + kiểm tra checksum');
+  ok(/toàn vẹn/.test(o) && fs.existsSync(path.join(ws, 'downloads', 'backup', 'test', L.list[0].name)), 'tải về Mac + kiểm tra checksum');
   o = await runJob('backup/act', { server: 'test', name: L.list[0].name, act: 'delete' }); ok(/Đã xóa/.test(o), 'xóa một phiên bản');
   r = await P('backup/act', { server: 'test', name: '../../etc/passwd', act: 'delete' }); ok(!!r.error, 'từ chối tên file backup nguy hiểm');
   o = await runJob('agent', { server: 'test', backupEnabled: true, backupHour: 2 });

@@ -9,12 +9,15 @@ const { spawn, spawnSync } = require('child_process');
 const ROOT = __dirname;
 const expand = (p) => p.replace(/^~(?=$|\/)/, os.homedir());
 let cfg = { apps: null, port: 4777, workspace: '~/TestHubWorkspace', githubToken: '', owner: '', timeoutMinutes: 10 };
-try { cfg = { ...cfg, ...JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8')) }; } catch {}
+try { cfg = { ...cfg, ...JSON.parse(fs.readFileSync(process.env.SHUB_CONFIG || path.join(ROOT, 'config.json'), 'utf8')) }; } catch {}
 cfg.githubToken = process.env.GITHUB_TOKEN || cfg.githubToken;
 const DEFAULT_APPS = [
   { id: 'build', name: 'S Build Hub', icon: '🛠', type: 'web', titleMatch: 'Build Hub', url: '', startCommand: '', desc: 'Build app Mac / Win / Android / iOS từ repo GitHub' },
   { id: 'test', name: 'S Test Hub', icon: '🧪', type: 'internal', path: '/test.html', desc: 'Lint, build, test, bảo mật, giao diện cho repo GitHub' },
   { id: 'vps', name: 'S VPS', icon: '🖥', type: 'internal', path: '/vps.html', desc: 'Quản lý VPS: deploy từ GitHub, tự cập nhật, dọn rác tự động' },
+  { id: 'github', name: 'S GitHub', icon: '🐙', type: 'internal', path: '/github.html', desc: 'Quản lý repo: tạo, public/private, thống kê' },
+  { id: 'files', name: 'Kho file', icon: '🗂', type: 'internal', path: '/files.html', desc: 'File tải về, quản lý theo danh mục' },
+  { id: 'claude', name: 'S Claude', icon: '✨', type: 'internal', path: '/claude.html', desc: 'Workflow agent, dọn cache, plugin, MCP, artifacts, dự án' },
   { id: 'chat', name: 'S Chat', icon: '💬', type: 'launch', command: 'open -a "S Chat"', desc: 'Chat Telegram đa tài khoản' },
   { id: 'vpn', name: 'S VPN', icon: '🔒', type: 'launch', command: 'open -a "S VPN"', desc: 'VPN riêng WireGuard' },
   { id: 'clean', name: 'S Clean', icon: '🧹', type: 'launch', command: 'open -a "S Clean"', desc: 'Dọn dẹp MacBook' },
@@ -22,6 +25,7 @@ const DEFAULT_APPS = [
 ];
 const APPS = Array.isArray(cfg.apps) && cfg.apps.length ? [...cfg.apps] : [...DEFAULT_APPS];
 if (!APPS.some((a) => a.id === 'vps')) APPS.splice(2, 0, DEFAULT_APPS.find((a) => a.id === 'vps'));
+for (const id of ['github', 'files', 'claude']) if (!APPS.some((a) => a.id === id)) { const i = APPS.findIndex((a) => a.id === 'vps'); APPS.splice(i >= 0 ? i + 1 : APPS.length, 0, DEFAULT_APPS.find((a) => a.id === id)); }
 const appById = (id) => APPS.find((a) => a.id === id);
 const WS = expand(cfg.workspace);
 const REPOS = path.join(WS, 'repos');
@@ -311,6 +315,9 @@ const body = (req) => new Promise((r) => { let b = ''; req.on('data', (d) => (b 
 const MIME = { '.svg': 'image/svg+xml', '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.js': 'text/javascript', '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8' };
 
 const vpsHandle = require('./vps')({ WS, json, body });
+const ghHandle = require('./github')({ WS, cfg, json, body });
+const filesHandle = require('./files')({ WS, cfg, json, body });
+const claudeHandle = require('./claude')({ WS, json, body });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -320,6 +327,9 @@ const server = http.createServer(async (req, res) => {
   if (!hostOk || (req.method !== 'GET' && !originOk)) return json(res, 403, { error: 'forbidden' });
   try {
     if (await vpsHandle(req, res, u)) return;
+    if (await ghHandle(req, res, u)) return;
+    if (await filesHandle(req, res, u)) return;
+    if (await claudeHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!a.startCommand, ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });
@@ -357,8 +367,12 @@ const server = http.createServer(async (req, res) => {
       R.clients.add(res); req.on('close', () => R.clients.delete(res)); return;
     }
     if (u.pathname === '/api/reports') {
-      const list = fs.readdirSync(REPORTS).sort().reverse().slice(0, 50).map((d) => { try { return JSON.parse(fs.readFileSync(path.join(REPORTS, d, 'report.json'), 'utf8')); } catch { return null; } }).filter(Boolean);
-      return json(res, 200, { reports: list });
+      const all = fs.readdirSync(REPORTS).sort().reverse().map((d) => { try { return JSON.parse(fs.readFileSync(path.join(REPORTS, d, 'report.json'), 'utf8')); } catch { return null; } }).filter(Boolean);
+      const q = u.searchParams; const repo = (q.get('repo') || '').toLowerCase(); const st = q.get('status') || '';
+      let list = all.filter((r) => (!repo || JSON.stringify(r).toLowerCase().includes(repo)) && (!st || (st === 'fail' ? r.failed > 0 : !r.failed)));
+      if (q.get('all') === '1') return json(res, 200, { reports: all.slice(0, 500), total: all.length });
+      const size = Math.min(100, Math.max(5, Number(q.get('size') || 10))); const page = Math.max(1, Number(q.get('page') || 1));
+      return json(res, 200, { reports: list.slice((page - 1) * size, page * size), total: list.length, page, size });
     }
     if (u.pathname.startsWith('/reports/')) {
       const p = path.join(REPORTS, path.normalize(u.pathname.slice(9)).replace(/^(\.\.[\/\\])+/, ''));

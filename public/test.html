@@ -23,7 +23,7 @@ button.ghost{background:transparent;border:1px solid var(--line);color:var(--tx)
 .right{display:flex;flex-direction:column;gap:16px;overflow:auto}img{max-width:100%;border-radius:8px;border:1px solid var(--line)}
 .hist{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
 html.embed header{display:none}html.embed main{height:100vh}
-</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg"></head><body>
+.tp[hidden]{display:none}.hist b{font-weight:600}</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><script src="/charts.js"></script><link rel="icon" href="/brand/icon.svg"></head><body>
 <header><h1>S Test Hub</h1><small id="env"></small></header>
 <main>
 <div class="card"><h2>Repo GitHub</h2>
@@ -42,9 +42,13 @@ html.embed header{display:none}html.embed main{height:100vh}
 <button id="go" class="cta" style="width:100%;margin-top:6px">Chạy kiểm tra</button>
 </div>
 <div class="right">
-<div class="card"><h2 id="title">Kết quả</h2><div id="sum"></div><div id="steps"></div><div id="shot"></div></div>
-<div class="card"><h2>Nhật ký chạy</h2><div id="log"></div></div>
-<div class="card"><h2>Lịch sử</h2><div id="hist"></div></div>
+<div class="tabs" id="tabs"><button data-t="res" class="on">Kết quả</button><button data-t="log">Nhật ký</button><button data-t="hist">Lịch sử</button><button data-t="stat">Thống kê</button></div>
+<div class="card tp" id="tp_res"><h2 id="title">Kết quả</h2><div id="sum"></div><div id="steps"></div><div id="shot"></div></div>
+<div class="card tp" id="tp_log" hidden><h2>Nhật ký chạy</h2><div id="log"></div></div>
+<div class="card tp" id="tp_hist" hidden><h2>Lịch sử chạy</h2>
+ <div style="display:flex;gap:8px"><input id="hq" placeholder="Lọc theo repo…"><select id="hs" style="width:150px"><option value="">Tất cả</option><option value="ok">Đạt</option><option value="fail">Có lỗi</option></select></div>
+ <div id="hist"></div><div id="hpg"></div></div>
+<div class="card tp" id="tp_stat" hidden><h2>Thống kê</h2><div id="stat"></div></div>
 </div></main>
 <script>
 if(self!==top)document.documentElement.classList.add('embed');
@@ -71,6 +75,19 @@ $('go').onclick=async()=>{
    $('sum').innerHTML=`<div class="sum" style="color:${p.failed?'var(--bad)':'var(--ok)'}">${p.failed?p.failed+' mục lỗi':'Tất cả đạt'} <span style="color:var(--mut);font-weight:400;font-size:13px">· ${p.passed} đạt · ${p.seconds}s</span></div>`;
    const sh=p.results.find(x=>x.screenshot);if(sh)$('shot').innerHTML=`<img src="/reports/${p.id}/${sh.screenshot}">`;hist()}};
  es.onerror=()=>{es.close();$('go').disabled=false}};
-function hist(){fetch('/api/reports').then(r=>r.json()).then(d=>{$('hist').innerHTML=d.reports.map(p=>`<div class="hist"><span>${p.repo}</span><span><span class="pill" style="background:${p.failed?'var(--bad-bg)':'var(--ok-bg)'}">${p.failed?p.failed+' lỗi':'đạt'}</span>${new Date(p.at).toLocaleString('vi-VN')}</span></div>`).join('')||'<span style="color:var(--mut)">Chưa có lần chạy nào</span>'})}
+try{const pu=localStorage.getItem('shub.prefillUrl');if(pu){document.getElementById('url').value=pu;localStorage.removeItem('shub.prefillUrl')}}catch{}
+let HP=1;
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function tab(t){document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));document.querySelectorAll('.tp').forEach(x=>x.hidden=x.id!=='tp_'+t);if(t==='stat')stats();if(t==='hist')hist()}
+function hist(p){if(p)HP=p;const q=encodeURIComponent($('hq').value.trim()),st=$('hs').value;
+ fetch(`/api/reports?page=${HP}&size=10&repo=${q}&status=${st}`).then(r=>r.json()).then(d=>{$('hist').innerHTML=d.reports.map(p=>`<div class="hist"><span>${UI.esc(p.repo)}</span><span><span class="pill" style="background:${p.failed?'var(--bad-bg)':'var(--ok-bg)'}">${p.failed?p.failed+' lỗi':'đạt'}</span>${new Date(p.at).toLocaleString('vi-VN')}</span></div>`).join('')||'<span style="color:var(--mut)">Chưa có lần chạy nào</span>';$('hpg').innerHTML=UI.pager(d.total,d.page,d.size,'hist')})}
+$('hq').oninput=()=>hist(1);$('hs').onchange=()=>hist(1);
+async function stats(){const d=await fetch('/api/reports?all=1').then(r=>r.json()),R=d.reports;if(!R.length){$('stat').innerHTML=UI.empty('Chưa có lần chạy nào');return}
+ const okN=R.filter(r=>!r.failed).length,by={};R.forEach(r=>{(by[r.repo]=by[r.repo]||{n:0,f:0}).n++;if(r.failed)by[r.repo].f++});
+ const last=R.slice(0,14).reverse().map((r,i)=>({x:new Date(r.at).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}),y:r.failed||0}));
+ $('stat').innerHTML=`<div class="kpis">${UI.kpi('Tổng lần chạy',R.length)}${UI.kpi('Tỉ lệ đạt',Math.round(okN/R.length*100)+'%',{color:'var(--ok)'})}${UI.kpi('Repo đã kiểm',Object.keys(by).length)}</div>
+ <div class="grid2"><div><h2>Đạt / lỗi</h2>${UI.donut([{label:'Đạt',value:okN,color:'#3FCB8A'},{label:'Có lỗi',value:R.length-okN,color:'#F2625A'}],{center:Math.round(okN/R.length*100)+'%',sub:'đạt'})}</div>
+ <div><h2>Số mục lỗi 14 lần gần nhất</h2>${UI.line(last,{color:'#F2625A'})}</div>
+ <div><h2>Repo chạy nhiều nhất</h2>${UI.hbars(Object.entries(by).sort((a,b)=>b[1].n-a[1].n).slice(0,8).map(([k,v])=>({label:k,value:v.n})))}</div></div>`;UI.countUp($('stat'))}
 hist();
 </script></body></html>

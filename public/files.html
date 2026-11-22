@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Kho file</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><script src="/charts.js"></script><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+input,select{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}th{font-size:12px;color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>input{flex:1;min-width:160px}.mut{color:var(--mut)}
+.layout{display:grid;grid-template-columns:230px 1fr;gap:14px}@media(max-width:800px){.layout{grid-template-columns:1fr}}
+.cat{display:flex;justify-content:space-between;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}.cat:hover{background:var(--hover)}.cat.on{border-color:var(--acc);background:var(--hover)}.cat small{color:var(--mut)}
+button.s{padding:4px 10px;font-size:12.5px}.err{color:var(--bad)}[hidden]{display:none!important}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:420px}
+</style></head><body>
+<div class="tabs" id="tabs"><button data-t="files" class="on">File</button><button data-t="stat">Thống kê</button></div>
+<div class="tp" id="tp_files"><div class="layout">
+ <div class="card"><h2>Danh mục</h2><div id="cats"></div><div class="row" style="margin-top:10px"><input id="nc" placeholder="Danh mục mới"><button class="ghost s" id="ac">Thêm</button></div></div>
+ <div class="card"><div class="row"><input id="q" placeholder="Tìm tên file, ghi chú…"><select id="so"><option value="new">Mới nhất</option><option value="size">Lớn nhất</option><option value="name">Theo tên</option></select></div>
+  <table><thead><tr><th>Tên file</th><th>Danh mục</th><th>Dung lượng</th><th>Ngày</th><th></th></tr></thead><tbody id="tb"></tbody></table><div id="pg"></div></div>
+</div></div>
+<div class="tp" id="tp_stat" hidden><div id="stat"></div></div>
+<div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=UI.esc;let C=[],cat='',P=1,CATS=[];
+const say=(m,bad)=>{const x=$('msg');x.textContent=m;x.className=bad?'err':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,5000)};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||'Lỗi');return d};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tp').forEach(x=>x.hidden=x.id!=='tp_'+b.dataset.t);if(b.dataset.t==='stat')stat()});
+async function load(p){if(p)P=p;const d=await api(`/api/files?category=${encodeURIComponent(cat)}&q=${encodeURIComponent($('q').value)}&sort=${$('so').value}&page=${P}&size=10`);CATS=d.categories;
+ const tot=CATS.reduce((a,b)=>a+b.count,0);$('cats').innerHTML=`<div class="cat ${cat===''?'on':''}" onclick="pick('')"><span>Tất cả</span><small>${tot}</small></div>`+CATS.map(c=>`<div class="cat ${cat===c.key?'on':''}" onclick="pick('${c.key}')"><span>${E(c.label)}</span><small>${c.count} · ${UI.fmtBytes(c.bytes)}</small></div>`).join('');
+ $('tb').innerHTML=d.items.map(i=>`<tr><td><b>${E(i.name)}</b>${i.dir?`<div class="mut" style="font-size:12px">${E(i.dir)}</div>`:''}${i.note?`<div class="mut" style="font-size:12px">📝 ${E(i.note)}</div>`:''}</td><td>${E((CATS.find(c=>c.key===i.category)||{}).label||i.category)}${i.external?' <span class="badge prv">chỉ đọc</span>':''}</td><td>${UI.fmtBytes(i.size)}</td><td>${new Date(i.mtime).toLocaleDateString('vi-VN')}</td>
+ <td style="white-space:nowrap"><a href="/files/dl/${i.id}"><button class="ghost s">Tải</button></a> <button class="ghost s" onclick="rv('${i.id}')">Finder</button> ${i.external?'':`<button class="ghost s" onclick="mv('${i.id}')">Chuyển</button> `}<button class="ghost s" onclick="nt('${i.id}')">Ghi chú</button>${i.external?'':` <button class="ghost s" style="color:var(--bad)" onclick="rm('${i.id}','${E(i.name).replace(/'/g,'')}')">Xóa</button>`}</td></tr>`).join('')||'<tr><td colspan=5 class="mut">Chưa có file trong mục này</td></tr>';
+ $('pg').innerHTML=UI.pager(d.total,d.page,d.size,'load')}
+function pick(c){cat=c;P=1;load()}$('q').oninput=()=>load(1);$('so').onchange=()=>load(1);
+$('ac').onclick=async()=>{try{await api('/api/files/category',{label:$('nc').value});$('nc').value='';load()}catch(e){say(e.message,1)}};
+async function mv(id){const k=prompt('Chuyển tới danh mục (mã):\n'+CATS.map(c=>c.key+' = '+c.label).join('\n'));if(!k)return;try{await api('/api/files/move',{id,category:k.trim()});load()}catch(e){say(e.message,1)}}
+async function nt(id){const n=prompt('Ghi chú (để trống để xóa):');if(n===null)return;try{await api('/api/files/note',{id,note:n});load()}catch(e){say(e.message,1)}}
+async function rm(id,n){if(!confirm('Xóa vĩnh viễn '+n+'?'))return;try{await api('/api/files/delete',{id});load()}catch(e){say(e.message,1)}}
+async function rv(id){try{const d=await api('/api/files/reveal',{id});say('Đã mở Finder')}catch(e){say(e.message,1)}}
+async function stat(){const d=await api('/api/files/summary');if(!d.files){$('stat').innerHTML=UI.empty('Kho file đang trống');return}
+ $('stat').innerHTML=`<div class="kpis">${UI.kpi('Tổng số file',d.files)}${UI.kpi('Tổng dung lượng',UI.fmtBytes(d.bytes))}${UI.kpi('Danh mục',d.categories.length)}</div><div class="grid2">
+ <div class="card"><h2>Dung lượng theo danh mục</h2>${UI.donut(d.categories.map(c=>({label:c.label,value:c.bytes})),{center:UI.fmtBytes(d.bytes),fmt:UI.fmtBytes})}</div>
+ <div class="card"><h2>Dung lượng theo tháng</h2>${UI.bars(Object.entries(d.byMonth).sort().slice(-8).map(([k,v])=>({label:k.slice(2),value:v})),{fmt:UI.fmtBytes})}</div>
+ <div class="card"><h2>File lớn nhất</h2>${UI.hbars(d.largest.map(f=>({label:f.name,value:f.size})),{fmt:UI.fmtBytes})}</div></div>`;UI.countUp($('stat'))}
+load();
+</script></body></html>

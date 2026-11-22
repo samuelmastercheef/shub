@@ -162,7 +162,7 @@ const DISK_DIRS = ['/', '/var', '/var/lib', '/var/lib/docker', '/var/log', '/hom
 // ---------- Router ----------
 module.exports = function ext(c) {
   const { load, save, ssh, sshArgs, SSH_BIN, findSP, bad, startJob, json, body, WS, expand } = c;
-  const MIRROR = (sid) => path.join(WS, 'backups', sid);
+  const MIRROR = (sid) => path.join(WS, 'downloads', 'backup', sid);
   const parseBackups = (out) => {
     const list = []; let free = 0, total = 0, cron = 0;
     out.split('\n').forEach((l) => {

@@ -44,6 +44,7 @@ h2.sec:first-child{margin-top:0}
  <div class="brand" data-go="home"><img src="/brand/icon.svg" alt="S Hub"><span><b>S Hub</b><small>by Socin</small></span></div>
  <div class="nav on" data-go="home"><span class="i">🏠</span><span class="n">Tổng quan</span></div>
  <div class="grp">Dựng &amp; kiểm thử</div><div id="n_dev"></div>
+ <div class="grp">Mã nguồn &amp; Claude</div><div id="n_src"></div>
  <div class="grp">Máy chủ</div><div id="n_srv"></div>
  <div class="grp">Ứng dụng Socin</div><div id="n_app"></div>
  <div class="foot">© Socin.org<br><span id="clock"></span></div>
@@ -56,18 +57,18 @@ h2.sec:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id);let apps=[],cur='home',reports=[],servers=[];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const GROUP={build:'n_dev',test:'n_dev',vps:'n_srv'};
+const GROUP={build:'n_dev',test:'n_dev',vps:'n_srv',github:'n_src',files:'n_src',claude:'n_src'};
 const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động'};
 const A=id=>apps.find(a=>a.id===id)||{};
 const dotCls=a=>a.online===true?'on':a.online===false?'off':'';
 async function load(){
  try{apps=(await (await fetch('/api/apps')).json()).apps}catch{apps=[]}
- try{reports=(await (await fetch('/api/reports')).json()).reports}catch{reports=[]}
+ try{reports=(await (await fetch('/api/reports?all=1')).json()).reports}catch{reports=[]}
  try{servers=(await (await fetch('/api/vps/servers')).json()).servers||[]}catch{servers=[]}
  nav();if(cur==='home')home()}
 function nav(){
  const mk=a=>`<div class="nav ${cur===a.id?'on':''}" data-go="${a.id}"><span class="i">${a.icon||'📦'}</span><span class="n">${esc(a.name)}</span><i class="dot ${dotCls(a)}"></i></div>`;
- ['n_dev','n_srv','n_app'].forEach(g=>$(g).innerHTML=apps.filter(a=>(GROUP[a.id]||'n_app')===g).map(mk).join(''));
+ ['n_dev','n_src','n_srv','n_app'].forEach(g=>$(g).innerHTML=apps.filter(a=>(GROUP[a.id]||'n_app')===g).map(mk).join(''));
  document.querySelectorAll('[data-go]').forEach(n=>n.onclick=()=>go(n.dataset.go));
  document.querySelector('aside .nav[data-go=home]').classList.toggle('on',cur==='home')}
 function stateOf(a){return a.online?'<i class="dot on"></i>Đang chạy':a.canStart?'<i class="dot"></i>Sẵn sàng khởi động':'<i class="dot off"></i>Chưa chạy'}

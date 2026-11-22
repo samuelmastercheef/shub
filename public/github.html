@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S GitHub</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><script src="/charts.js"></script><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+input,select,textarea{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:12px;color:var(--mut);cursor:pointer;white-space:nowrap}
+td.n a{color:var(--tx);font-weight:600;text-decoration:none}td small{color:var(--mut);display:block;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>input{flex:1;min-width:160px}
+.f{display:grid;gap:10px;max-width:560px}.f label{display:grid;gap:4px;font-weight:500}.mut{color:var(--mut)}
+button.s{padding:4px 10px;font-size:12.5px}[hidden]{display:none!important}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:420px}
+.err{color:var(--bad)}
+</style></head><body>
+<div id="who" class="mut" style="margin-bottom:10px"></div>
+<div class="tabs" id="tabs"><button data-t="repos" class="on">Repo</button><button data-t="new">Tạo repo</button><button data-t="stat">Thống kê</button></div>
+
+<div class="tp" id="tp_repos">
+ <div class="card">
+  <div class="row"><input id="q" placeholder="Tìm repo, mô tả, ngôn ngữ…">
+   <select id="fv"><option value="">Tất cả</option><option value="public">Public</option><option value="private">Private</option><option value="archived">Đã lưu trữ</option></select>
+   <button class="ghost" id="rf">Làm mới</button></div>
+  <table><thead><tr><th data-s="name">Repo</th><th>Chế độ</th><th data-s="lang">Ngôn ngữ</th><th data-s="stars">★</th><th data-s="size">Dung lượng</th><th data-s="pushed">Cập nhật</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+  <div id="pg"></div>
+ </div>
+</div>
+
+<div class="tp" id="tp_new" hidden><div class="card"><h2>Tạo repo mới</h2>
+ <div class="f">
+  <label>Tên repo<input id="n_name" placeholder="vd: my-project"></label>
+  <label>Mô tả<input id="n_desc" placeholder="Mô tả ngắn"></label>
+  <label>Chủ sở hữu<select id="n_org"></select></label>
+  <label>Chế độ<select id="n_vis"><option value="private">Private (chỉ mình bạn)</option><option value="public">Public (ai cũng thấy)</option></select></label>
+  <label><span><input type="checkbox" id="n_init" checked> Tạo README ban đầu</span></label>
+  <label>.gitignore<select id="n_gi"><option value="">Không</option><option>Node</option><option>Python</option><option>Go</option><option>Swift</option><option>Java</option><option>Rust</option></select></label>
+  <label>Giấy phép<select id="n_lic"><option value="">Không</option><option value="mit">MIT</option><option value="apache-2.0">Apache 2.0</option><option value="gpl-3.0">GPL 3.0</option></select></label>
+  <div><button class="cta" id="mk">Tạo repo</button></div>
+ </div></div></div>
+
+<div class="tp" id="tp_stat" hidden><div id="stat"></div></div>
+
+<dialog id="dlg" style="max-width:640px;width:92vw"><div id="dbody"></div><div style="text-align:right;margin-top:12px"><button class="ghost" onclick="dlg.close()">Đóng</button></div></dialog>
+<div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=UI.esc;let R=[],P=1,sortK='pushed',sortD=-1,ME=null;
+const say=(m,bad)=>{const x=$('msg');x.textContent=m;x.className=bad?'err':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,5000)};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||'Lỗi');return d};
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tp').forEach(x=>x.hidden=x.id!=='tp_'+b.dataset.t);if(b.dataset.t==='stat')stat()});
+async function boot(){try{ME=await api('/api/gh/me');$('who').innerHTML=`Đăng nhập: <b>${E(ME.login)}</b> · quyền: ${E(ME.scopes||'(token tinh chỉnh)')}`;
+ $('n_org').innerHTML=`<option value="">${E(ME.login)} (cá nhân)</option>`+ME.orgs.map(o=>`<option>${E(o)}</option>`).join('');await load()}catch(e){$('tb').innerHTML=`<tr><td colspan=7 class="err">${E(e.message)}</td></tr>`}}
+async function load(f){const d=await api('/api/gh/repos'+(f?'?refresh=1':''));R=d.repos;draw()}
+function view(){const q=$('q').value.toLowerCase(),v=$('fv').value;let l=R.filter(r=>(!q||(r.full+' '+r.desc+' '+r.lang).toLowerCase().includes(q))&&(!v||(v==='public'?!r.private&&!r.archived:v==='private'?r.private:r.archived)));
+ l.sort((a,b)=>{const x=a[sortK],y=b[sortK];return (typeof x==='string'?String(x).localeCompare(y):(x||0)-(y||0))*sortD});return l}
+function draw(){const l=view();$('tb').innerHTML=l.slice((P-1)*10,P*10).map(r=>`<tr><td class="n"><a href="${E(r.url)}" target="_blank" rel="noopener">${E(r.full)}</a><small>${E(r.desc)||'—'}</small></td>
+ <td><span class="badge ${r.archived?'arc':r.private?'prv':'pub'}">${r.archived?'Lưu trữ':r.private?'Private':'Public'}</span></td><td>${E(r.lang)||'—'}</td><td>${r.stars}</td><td>${UI.fmtBytes(r.size*1024)}</td><td title="${E(r.pushed)}">${r.pushed?UI.ago(r.pushed):'—'}</td>
+ <td style="white-space:nowrap"><button class="ghost s" onclick="detail('${E(r.full)}')">Chi tiết</button> <button class="ghost s" onclick="toggle('${E(r.full)}')">${r.private?'→ Public':'→ Private'}</button></td></tr>`).join('')||'<tr><td colspan=7 class="mut">Không có repo</td></tr>';
+ $('pg').innerHTML=UI.pager(l.length,P,10,'gp')}
+window.gp=p=>{P=p;draw()};$('q').oninput=$('fv').onchange=()=>{P=1;draw()};$('rf').onclick=()=>load(1).then(()=>say('Đã làm mới'));
+document.querySelectorAll('th[data-s]').forEach(t=>t.onclick=()=>{const k=t.dataset.s;sortD=sortK===k?-sortD:-1;sortK=k;draw()});
+async function toggle(full){const r=R.find(x=>x.full===full);let b={full,private:!r.private};
+ if(r.private){const n=prompt(`Chuyển ${full} sang PUBLIC sẽ lộ toàn bộ mã nguồn.\nGõ đúng tên repo "${r.name}" để xác nhận:`);if(n===null)return;b.confirmName=n}
+ try{await api('/api/gh/update',b);say(`${full} đã chuyển sang ${b.private?'Private':'Public'}`);load(1)}catch(e){say(e.message,1)}}
+async function detail(full){$('dbody').innerHTML='Đang tải…';dlg.showModal();try{const d=await api('/api/gh/detail?full='+encodeURIComponent(full)),r=d.repo,tot=Object.values(d.languages).reduce((a,b)=>a+b,0);
+ $('dbody').innerHTML=`<h2>${E(r.full)} <span class="badge ${r.private?'prv':'pub'}">${r.private?'Private':'Public'}</span></h2><p>${E(r.desc)||'<span class=mut>Chưa có mô tả</span>'}</p>
+ <div class="grid2"><div>${UI.donut(Object.entries(d.languages).map(([k,v])=>({label:k,value:v})),{size:130,thick:18,center:Object.keys(d.languages).length+'',sub:'ngôn ngữ'})}</div><div><b>Nhánh</b> (${d.branches.length}): ${d.branches.slice(0,6).map(E).join(', ')}<br><br><b>Commit gần đây</b>${d.commits.map(c=>`<div style="font-size:13px"><code>${c.sha}</code> ${E(c.msg)} <span class="mut">· ${E(c.author)}</span></div>`).join('')}</div></div>
+ <div class="row" style="margin-top:12px"><button class="ghost s" onclick="dl('${E(r.full)}','${E(r.branch)}')">Tải ZIP về Kho file</button><button class="ghost s" onclick="toTest('${E(r.clone)}')">Gửi sang S Test Hub</button><button class="ghost s" onclick="arch('${E(r.full)}',${!r.archived})">${r.archived?'Bỏ lưu trữ':'Lưu trữ'}</button><button class="ghost s" style="color:var(--bad)" onclick="del('${E(r.full)}')">Xóa repo</button></div>`}catch(e){$('dbody').innerHTML=`<span class=err>${E(e.message)}</span>`}}
+async function dl(full,ref){say('Đang tải ZIP…');try{const d=await api('/api/gh/download',{full,ref});say(`Đã lưu ${d.file} (${UI.fmtBytes(d.bytes)}) vào Kho file → Mã nguồn`)}catch(e){say(e.message,1)}}
+function toTest(u){try{localStorage.setItem('shub.prefillUrl',u)}catch{};say('Mở S Test Hub và dán URL: '+u)}
+async function arch(full,v){try{await api('/api/gh/update',{full,archived:v});say('Đã cập nhật');dlg.close();load(1)}catch(e){say(e.message,1)}}
+async function del(full){const n=prompt(`XÓA VĨNH VIỄN ${full}. Không thể hoàn tác.\nGõ đúng "${full}" để xác nhận:`);if(n===null)return;try{await api('/api/gh/delete',{full,confirmName:n});say('Đã xóa '+full);dlg.close();load(1)}catch(e){say(e.message,1)}}
+$('mk').onclick=async()=>{try{const d=await api('/api/gh/create',{name:$('n_name').value.trim(),description:$('n_desc').value,org:$('n_org').value,private:$('n_vis').value==='private',autoInit:$('n_init').checked,gitignore:$('n_gi').value,license:$('n_lic').value});say('Đã tạo '+d.repo.full);$('n_name').value='';await load(1);document.querySelector('[data-t=repos]').click()}catch(e){say(e.message,1)}};
+function stat(){if(!R.length){$('stat').innerHTML=UI.empty('Chưa có dữ liệu repo');return}
+ const pub=R.filter(r=>!r.private&&!r.archived).length,prv=R.filter(r=>r.private).length,arc=R.filter(r=>r.archived).length,lang={},yr={};R.forEach(r=>{if(r.lang)lang[r.lang]=(lang[r.lang]||0)+1;const y=(r.created||'').slice(0,4);if(y)yr[y]=(yr[y]||0)+1});
+ const act=R.filter(r=>r.pushed&&Date.now()-new Date(r.pushed)<30*864e5).length;
+ $('stat').innerHTML=`<div class="kpis">${UI.kpi('Tổng repo',R.length)}${UI.kpi('Public',pub)}${UI.kpi('Private',prv)}${UI.kpi('Hoạt động 30 ngày',act)}${UI.kpi('Tổng dung lượng',UI.fmtBytes(R.reduce((a,b)=>a+b.size,0)*1024))}</div>
+ <div class="grid2"><div class="card"><h2>Chế độ hiển thị</h2>${UI.donut([{label:'Public',value:pub,color:'#3FCB8A'},{label:'Private',value:prv,color:'#0B7F8F'},{label:'Lưu trữ',value:arc,color:'#8FA6B4'}],{center:R.length+'',sub:'repo'})}</div>
+ <div class="card"><h2>Ngôn ngữ</h2>${UI.donut(Object.entries(lang).sort((a,b)=>b[1]-a[1]).slice(0,7).map(([k,v])=>({label:k,value:v})),{})}</div>
+ <div class="card"><h2>Repo tạo theo năm</h2>${UI.bars(Object.entries(yr).sort().map(([k,v])=>({label:k,value:v})))}</div>
+ <div class="card"><h2>Repo nặng nhất</h2>${UI.hbars(R.slice().sort((a,b)=>b.size-a.size).slice(0,6).map(r=>({label:r.name,value:r.size*1024})),{fmt:UI.fmtBytes})}</div></div>`;UI.countUp($('stat'))}
+boot();
+</script></body></html>
