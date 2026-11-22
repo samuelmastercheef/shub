@@ -90,6 +90,9 @@ else echo ok; fi\n`, { mode: 0o755 });
     ok((await post('/api/cr/video/render', { id: 'tu-ve', voice: false, captions: false, autoImages: true, imageSource: 'card' }, P)).j.ok, 'bật tự vẽ ảnh thiếu rồi dựng video');
     for (let i = 0; i < 90; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=tu-ve', P)).t).project; if (v.video.status !== 'rendering') break; }
     ok(v.video.status === 'done' && Object.keys(v.images).length === 2, 'video tự vẽ xong');
+    ok((await post('/api/cr/video/render', { id: 'tu-ve', voice: false, captions: false, engine: 'drawthings', redraw: true }, P)).j.ok, 'engine Draw Things: vẽ lại ảnh rồi dựng');
+    for (let i = 0; i < 90; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=tu-ve', P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'done' && Object.keys(v.images).length === 2, 'video Draw Things xong');
     await post('/api/cr/settings/save', { imageSource: 'api' }, P);
     // giọng CIT
     const cp = cit.address().port;

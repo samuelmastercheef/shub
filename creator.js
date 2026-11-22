@@ -226,7 +226,7 @@ module.exports = function init({ WS, json, body }) {
       if (route === 'project') return json(res, 200, { ok: true, project: view(load(q.get('id'))) }), true;
       if (route === 'stats') { const all = fs.readdirSync(PROJ).filter((f) => f.endsWith('.json')).map((f) => rj(path.join(PROJ, f), null)).filter(Boolean); const sc = all.flatMap((p) => p.schedule || []); const by = (k) => sc.reduce((a, x) => ((a[x[k]] = (a[x[k]] || 0) + 1), a), {});
         return json(res, 200, { ok: true, projects: all.length, steps: all.reduce((a, p) => ((a[p.step] = (a[p.step] || 0) + 1), a), {}), items: sc.length, byStatus: by('status'), byPlatform: by('platform'), videos: all.filter((p) => (p.video || {}).status === 'done').length }), true; }
-      const b = req.method === 'POST' ? await body(req) : {};
+      let b = req.method === 'POST' ? await body(req) : {};
       if (route === 'settings/save') {
         const s = getSet(); if (b.imageApi !== undefined) { const v = clean(b.imageApi, 200); if (v && !/^https?:\/\/[\w.-]+(:\d+)?(\/[\w./-]*)?$/.test(v)) bad('Địa chỉ server ảnh không hợp lệ'); s.imageApi = v; }
         if (b.imageSteps !== undefined) { const n = Number(b.imageSteps); if (!Number.isInteger(n) || n < 1 || n > 60) bad('Số bước phải từ 1 đến 60'); s.imageSteps = n; }
@@ -276,6 +276,7 @@ module.exports = function init({ WS, json, body }) {
       if (route === 'video/cancel') { const c = jobCtx.get(clean(b.id, 80)); if (!c) bad('Không có video đang dựng'); c.cancelled = true; try { c.ac.abort(); } catch {} c.children.forEach((x) => { try { x.kill('SIGKILL'); } catch {} }); return json(res, 200, { ok: true }), true; }
       if (route === 'video/render') {
         const p = load(b.id); if (jobs.has(p.id)) bad('Video đang được dựng'); if (!has('ffmpeg')) bad('Chưa có ffmpeg. Cài bằng: brew install ffmpeg'); if (!p.script) bad('Chưa có kịch bản');
+        if (b.engine === 'drawthings') { if (!getSet().imageApi) bad('Chưa cấu hình Draw Things / server ảnh (tab Kết nối)'); b = { ...b, autoImages: true, imageSource: 'api' }; if (b.redraw) p.images = {}; }
         let miss = p.script.scenes.map((_, i) => i + 1).filter((i) => !p.images[String(i)]); if (miss.length && b.autoImages) { const src = ['api', 'gemini', 'claude', 'card'].includes(b.imageSource) ? b.imageSource : srcOf(getSet()); for (const n of miss) await genImage(p, n, src); miss = []; } if (miss.length) bad('Còn thiếu ảnh cho cảnh: ' + miss.join(', '));
         p.video = { status: 'rendering', started: Date.now() }; p.step = 'video'; save(p); jobs.add(p.id);
         render(p.id, { voice: b.voice !== false, captions: b.captions !== false, engine: b.engine === 'gemini' ? 'gemini' : 'ffmpeg', delay: Number(b.testDelay) || 0 }).then((r) => { const q2 = load(p.id); q2.video = { status: 'done', ...r, at: Date.now() }; save(q2); }).catch((e) => { const q2 = load(p.id); q2.video = e.cancelled ? { status: 'cancelled', at: Date.now() } : { status: 'error', error: String(e.message).slice(0, 500) }; save(q2); }).finally(() => jobs.delete(p.id));
