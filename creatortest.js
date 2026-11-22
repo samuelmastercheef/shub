@@ -40,6 +40,7 @@ else echo ok; fi\n`, { mode: 0o755 });
     ok((await post('/api/cr/video/render', { id, voice: false, captions: true }, P)).j.ok, 'bắt đầu dựng video');
     let v; for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
     ok(v.video.status === 'done' && v.video.bytes > 5000, 'video dựng xong: ' + JSON.stringify(v.video).slice(0, 120));
+    ok(v.video.captions === true && !v.video.warn, 'video có chữ' + (process.env.SHUB_NO_DRAWTEXT ? ' (ghép PNG vì ffmpeg thiếu drawtext)' : ''));
     const pf = JSON.parse(require('child_process').execSync(`ffprobe -v error -show_entries stream=width,height,codec_name -of json "${WS}/downloads/creator/${id}/video.mp4"`)).streams; ok(pf.some((s) => s.codec_name === 'h264' && s.width === 1080 && s.height === 1920), 'video 1080x1920 h264');
     ok(fs.existsSync(`${WS}/downloads/creator/${id}/video.srt`), 'có phụ đề .srt');
     const fl = JSON.parse((await get('/api/files?category=creator', P)).t); ok(fl.total >= 1, 'file video hiện trong Kho file (danh mục creator)');

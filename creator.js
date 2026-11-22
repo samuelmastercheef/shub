@@ -64,10 +64,18 @@ module.exports = function init({ WS, json, body }) {
     fs.writeFileSync(out, Buffer.from(await r.arrayBuffer()));
   }
   const jobs = new Set();
+  const hasDrawtext = () => { if (process.env.SHUB_NO_DRAWTEXT) return false; const r = spawnSync('ffmpeg', ['-hide_banner', '-filters'], { encoding: 'utf8' }); return /\bdrawtext\b/.test(r.stdout || ''); };
+  const hasPlaywright = () => { try { require.resolve('playwright'); return true; } catch { return false; } };
+  // ffmpeg của Homebrew thường thiếu bộ lọc drawtext → vẽ chữ thành PNG trong suốt bằng Playwright rồi ghép đè lên
+  async function captionPng(text, file) {
+    const pw = require('playwright'); const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const html = `<body style="margin:0;width:1080px;height:1920px;background:transparent;position:relative;font-family:'Be Vietnam Pro',-apple-system,Helvetica,Arial,sans-serif"><div style="position:absolute;left:0;right:0;top:72%;display:flex;justify-content:center"><div style="max-width:880px;background:rgba(0,0,0,.55);color:#fff;font-size:54px;line-height:1.3;font-weight:700;text-align:center;padding:22px 30px;border-radius:14px">${esc(text).replace(/\n/g, '<br>')}</div></div></body>`;
+    const br = await pw.chromium.launch(); try { const pg = await br.newPage({ viewport: { width: 1080, height: 1920 } }); await pg.setContent(html); await pg.waitForTimeout(200); await pg.screenshot({ path: file, omitBackground: true }); } finally { await br.close(); }
+  }
   async function render(id, opt) {
     const p = load(id), set = getSet(), dir = outDir(id), tmp = path.join(dir, '.tmp'); fs.mkdirSync(tmp, { recursive: true });
     const scenes = (p.script && p.script.scenes) || []; if (!scenes.length) throw new Error('Chưa có kịch bản');
-    const citOk = opt.voice && set.engine === 'cit' && (await citHealth()).ok; let usedVoice = ''; const segs = []; let t = 0; const srt = []; const font = opt.captions !== false ? FONT() : null;
+    const citOk = opt.voice && set.engine === 'cit' && (await citHealth()).ok; let usedVoice = ''; const segs = []; let t = 0; const srt = []; const wantCap = opt.captions !== false; const dt = wantCap && hasDrawtext(); const overlay = wantCap && !dt && hasPlaywright(); const font = dt ? FONT() : null; let warn = ''; if (wantCap && !dt && !overlay) warn = 'ffmpeg thiếu bộ lọc drawtext và chưa có Playwright nên video không có chữ (vẫn có file .srt). Cài: cd ~/shub && npm i playwright && npx playwright install chromium';
     for (let i = 0; i < scenes.length; i++) {
       const img = p.images[String(i + 1)]; if (!img) throw new Error(`Cảnh ${i + 1} chưa có ảnh`);
       let sec = Math.min(30, Math.max(2, Number(scenes[i].seconds) || 4)), audio = null;
@@ -79,14 +87,16 @@ module.exports = function init({ WS, json, body }) {
       if (font && cap) { const tf = path.join(tmp, `t${i}.txt`); fs.writeFileSync(tf, wrap(cap)); vf += `,drawtext=fontfile='${font.replace(/'/g, '')}':textfile='${tf}':fontsize=54:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=22:line_spacing=10:x=(w-text_w)/2:y=h*0.72`; }
       const args = ['-y', '-loop', '1', '-t', String(sec), '-i', path.join(dir, img)];
       if (audio) args.push('-i', audio); else args.push('-f', 'lavfi', '-t', String(sec), '-i', 'anullsrc=r=44100:cl=mono');
-      args.push('-vf', vf, '-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '1', '-shortest', seg);
+      if (overlay && cap) { const cp = path.join(tmp, `c${i}.png`); await captionPng(wrap(cap), cp); args.push('-loop', '1', '-t', String(sec), '-i', cp, '-filter_complex', `[0:v]${vf}[v];[2:v]format=rgba[c];[v][c]overlay=0:0,format=yuv420p[o]`, '-map', '[o]', '-map', '1:a'); }
+      else args.push('-vf', vf);
+      args.push('-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'aac', '-b:a', '128k', '-ar', '44100', '-ac', '1', '-shortest', seg);
       await run('ffmpeg', args); segs.push(seg);
       srt.push(`${i + 1}\n${srtT(t)} --> ${srtT(t + sec)}\n${scenes[i].narration || cap || ''}\n`); t += sec;
     }
     fs.writeFileSync(path.join(tmp, 'list.txt'), segs.map((s) => `file '${s}'`).join('\n'));
     const out = path.join(dir, 'video.mp4'); await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(tmp, 'list.txt'), '-c', 'copy', '-movflags', '+faststart', out]);
     fs.writeFileSync(path.join(dir, 'video.srt'), srt.join('\n')); fs.rmSync(tmp, { recursive: true, force: true });
-    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font, voice: !!opt.voice && !!usedVoice, voiceEngine: usedVoice || null };
+    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font || overlay, warn: warn || undefined, voice: !!opt.voice && !!usedVoice, voiceEngine: usedVoice || null };
   }
 
   // ---- đăng: adapter ----
