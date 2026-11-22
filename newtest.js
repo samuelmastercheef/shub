@@ -58,6 +58,9 @@ fake.listen(0, async () => {
     const sv = await post('/api/cl/flow/save', { flow }, P); ok(sv.j.ok && sv.j.id === 'test-flow', 'workflow lưu');
     ok((await post('/api/cl/flow/save', { flow: { name: 'x', nodes: [{ id: 'a', type: 'evil' }] } }, P)).s === 400, 'workflow: chặn loại node lạ');
     const rn = await post('/api/cl/flow/run', { id: 'test-flow' }, P); ok(rn.j.ok && rn.j.logs.find((l) => l.id === 'o').out.includes('KQ:'), 'workflow chạy qua claude (giả)');
+    fs.writeFileSync(path.join(T, 'fakeclaude'), '#!/bin/bash\nif echo "$2" | grep -q "thiết kế workflow"; then echo \'Đây: {"name":"Gợi ý","nodes":[{"id":"a","type":"trigger","name":"In","cfg":{"text":"x"}},{"id":"b","type":"output","name":"Out"}],"edges":[{"from":"a","to":"b"}]}\'; else echo "KQ: $2" | head -c 80; fi\n', { mode: 0o755 });
+    const sg = await post('/api/cl/flow/suggest', { request: 'tạo flow thử nghiệm' }, P); ok(sg.j.ok && sg.j.flow.nodes.length === 2 && sg.j.flow.edges.length === 1, 'đề xuất flow từ yêu cầu (claude giả)');
+    ok((await post('/api/cl/flow/suggest', { request: 'a' }, P)).s === 400, 'đề xuất flow: chặn yêu cầu quá ngắn');
     const md = JSON.parse((await get('/api/cl/flow?id=test-flow&md=1', P)).t); ok(/## 2\. Hỏi/.test(md.markdown), 'workflow xuất Markdown');
     ok((await post('/api/cl/artifact/save', { name: 'A1', url: 'javascript:alert(1)' }, P)).s === 400, 'artifact: chặn link không phải https');
     ok((await post('/api/cl/artifact/save', { name: 'A1', url: 'https://claude.ai/artifact/x', category: 'Báo cáo' }, P)).j.ok, 'artifact lưu');

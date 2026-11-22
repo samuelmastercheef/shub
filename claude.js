@@ -170,6 +170,16 @@ module.exports = function init({ WS, json, body }) {
       }
       if (route === 'flow/delete') { if (!ID.test(b.id || '') || !exists(fp(b.id))) bad('Không thấy workflow', 404); if (b.confirm !== b.id) bad('Gõ đúng mã workflow để xác nhận xóa'); fs.unlinkSync(fp(b.id)); return json(res, 200, { ok: true }), true; }
       if (route === 'flow/run') { if (!ID.test(b.id || '') || !exists(fp(b.id))) bad('Không thấy workflow', 404); const r = await runFlow(rj(fp(b.id), null), String(b.input || '').slice(0, 20000)); return json(res, 200, r), true; }
+      if (route === 'flow/suggest') {
+        const req0 = String(b.request || '').trim().slice(0, 1500); if (req0.length < 5) bad('Hãy mô tả yêu cầu (ít nhất vài từ)');
+        const prompt = `Bạn thiết kế workflow agent. Với yêu cầu dưới đây, trả về DUY NHẤT một JSON (không giải thích, không markdown) dạng:
+{"name":"...","summary":"...","nodes":[{"id":"n1","type":"trigger|claude|agent|tool|code|condition|human|output","name":"...","cfg":{}}],"edges":[{"from":"n1","to":"n2","port":"out"}]}
+Quy tắc: 4-9 node, bắt đầu bằng 1 node trigger (cfg.text là dữ liệu mẫu), kết thúc bằng node output. cfg theo loại: claude{system,prompt}, agent{role,procedure,tools}, tool{name,desc,mock}, condition{question}, human{message}. Trong prompt dùng {{input}} cho dữ liệu từ node trước. port: "out" thường; condition dùng "true"/"false"; human dùng "ok"/"no". id chỉ gồm chữ thường, số, gạch ngang. Viết tiếng Việt.
+Yêu cầu: ${req0}`;
+        const out = await askClaude(prompt, 150000); const i = out.indexOf('{'), j = out.lastIndexOf('}'); if (i < 0 || j <= i) bad('Claude không trả về JSON hợp lệ, thử mô tả rõ hơn');
+        let raw; try { raw = JSON.parse(out.slice(i, j + 1)); } catch { bad('Không đọc được JSON từ Claude, thử lại'); }
+        const f = normFlow(raw, 'tmp'); return json(res, 200, { ok: true, flow: f }), true;
+      }
       const simple = (file, build) => { const list = rj(path.join(DIR, file), []); return list; };
       if (route === 'artifact/save' || route === 'project/save' || route === 'doc/save') {
         const file = route.startsWith('artifact') ? 'artifacts.json' : route.startsWith('project') ? 'projects.json' : 'docs.json'; const list = simple(file);
