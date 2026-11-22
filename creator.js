@@ -19,8 +19,8 @@ module.exports = function init({ WS, json, body }) {
   const has = (bin) => spawnSync('which', [bin]).status === 0;
 
   // ---- cài đặt (token Socin lưu mode 600, không bao giờ trả về client) ----
-  const getSet = () => ({ imageApi: '', voice: 'Linh', engine: 'cit', citUrl: 'http://127.0.0.1:8001', citVoice: '', socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) });
-  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, voice: s.voice, engine: s.engine, citUrl: s.citUrl, citVoice: s.citVoice, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
+  const getSet = () => ({ imageApi: '', voice: 'Linh', imageSteps: 6, imageCfg: 2, imageStyle: 'hand-drawn cartoon illustration, flat 2D, simple shapes, clean lines, vertical composition', engine: 'cit', citUrl: 'http://127.0.0.1:8001', citVoice: '', socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) });
+  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, imageSteps: s.imageSteps, imageCfg: s.imageCfg, imageStyle: s.imageStyle, voice: s.voice, engine: s.engine, citUrl: s.citUrl, citVoice: s.citVoice, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
 
   // ---- Claude ----
   const CLAUDE = () => process.env.SHUB_CLAUDE_BIN || 'claude';
@@ -36,7 +36,7 @@ module.exports = function init({ WS, json, body }) {
 
   // ---- ảnh ----
   async function imgApi(set, prompt, w, h) {
-    const r = await fetch(set.imageApi.replace(/\/$/, '') + '/sdapi/v1/txt2img', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, negative_prompt: 'text, watermark, blurry, low quality', width: w, height: h, steps: 20 }), signal: AbortSignal.timeout(300000) });
+    const r = await fetch(set.imageApi.replace(/\/$/, '') + '/sdapi/v1/txt2img', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: (set.imageStyle ? set.imageStyle + ', ' : '') + prompt, negative_prompt: 'text, letters, watermark, logo, blurry, low quality, deformed', width: w, height: h, steps: set.imageSteps, cfg_scale: set.imageCfg, guidance_scale: set.imageCfg }), signal: AbortSignal.timeout(300000) });
     if (!r.ok) bad('Server ảnh lỗi HTTP ' + r.status); const j = await r.json(); if (!j.images || !j.images[0]) bad('Server ảnh không trả ảnh'); return Buffer.from(j.images[0], 'base64');
   }
   async function cardPng(text, sub, idx, total, file) {
@@ -135,6 +135,9 @@ module.exports = function init({ WS, json, body }) {
       const b = req.method === 'POST' ? await body(req) : {};
       if (route === 'settings/save') {
         const s = getSet(); if (b.imageApi !== undefined) { const v = clean(b.imageApi, 200); if (v && !/^https?:\/\/[\w.-]+(:\d+)?(\/[\w./-]*)?$/.test(v)) bad('Địa chỉ server ảnh không hợp lệ'); s.imageApi = v; }
+        if (b.imageSteps !== undefined) { const n = Number(b.imageSteps); if (!Number.isInteger(n) || n < 1 || n > 60) bad('Số bước phải từ 1 đến 60'); s.imageSteps = n; }
+        if (b.imageCfg !== undefined) { const n = Number(b.imageCfg); if (!(n >= 0 && n <= 20)) bad('CFG phải từ 0 đến 20'); s.imageCfg = n; }
+        if (b.imageStyle !== undefined) s.imageStyle = clean(b.imageStyle, 200);
         if (b.engine !== undefined) { if (!['cit', 'say'].includes(b.engine)) bad('Nguồn giọng không hợp lệ'); s.engine = b.engine; }
         if (b.citUrl !== undefined) { const v = clean(b.citUrl, 100).replace(/\/$/, ''); if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d{2,5})?$/.test(v)) bad('Địa chỉ CIT phải là http://127.0.0.1:<cổng> hoặc http://localhost:<cổng>'); s.citUrl = v; }
         if (b.citVoice !== undefined) { const v = clean(b.citVoice, 80); if (v && !/^[\p{L}\p{N} .()_-]{1,80}$/u.test(v)) bad('Mã giọng không hợp lệ'); s.citVoice = v; }
