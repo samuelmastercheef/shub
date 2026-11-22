@@ -51,3 +51,10 @@ Cập nhật trên Mac: `cd ~/shub && git pull && ./start.command`. Test: `node 
 
 ## S Creator
 Tạo content, ảnh, video từ concept theo bước: Concept → Ý tưởng → Kịch bản → Ảnh → Video → Lịch đăng. Claude cục bộ viết ý tưởng/kịch bản; giọng đọc dùng CIT Voice Studio (cổng 8001, tự quay về `say` của macOS nếu CIT tắt), ảnh dựng bằng Playwright (thẻ thương hiệu), tải lên hoặc server ảnh tương thích A1111; video ghép bằng ffmpeg (`brew install ffmpeg`). Lịch đăng đẩy bài nháp sang Socin qua khoá API, xem `docs/creator-socin.md`. Test: `node creatortest.js`.
+
+
+## S Xpub (nạp USDT BEP20 cho S Prime CopyTrade Pay)
+
+Tạo cụm 12/24 từ hoặc nhập cụm có sẵn, tính **xpub** (đường dẫn `m/44'/60'/0'/0`, 111 ký tự) và 3 địa chỉ nạp mẫu `#0–#2` để đối chiếu với Admin › Ví. Kết quả khớp tool `tools/gen-xpub` của repo `sprime-xauusd-server`. Nằm trong nhóm "Dựng & kiểm thử", có nút tắt ở bước "Dựng app" trang chủ.
+
+An toàn: mọi phép tính chạy **trong trang web trên máy bạn**, không có route nào ở server nhận cụm từ; trang đặt CSP `connect-src 'none'` nên trình duyệt chặn mọi kết nối ra ngoài, không ghi file, không dùng localStorage; đóng hoặc tải lại trang là mất sạch. Không dùng thư viện ngoài (BIP39 danh sách từ, BIP32, secp256k1, Keccak, RIPEMD-160 tự cài). Từ chối xprv/khoá riêng. Không dán cụm từ vào chat hay CI. Test: `node xpubtest.js`.

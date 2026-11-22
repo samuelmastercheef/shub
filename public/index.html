@@ -57,8 +57,8 @@ h2.sec:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id);let apps=[],cur='home',reports=[],servers=[];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const GROUP={build:'n_dev',test:'n_dev',vps:'n_srv',github:'n_src',creator:'n_src',files:'n_src',claude:'n_src'};
-const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động'};
+const GROUP={build:'n_dev',xpub:'n_dev',test:'n_dev',vps:'n_srv',github:'n_src',creator:'n_src',files:'n_src',claude:'n_src'};
+const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ và xpub nạp USDT BEP20, chạy offline',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động'};
 const A=id=>apps.find(a=>a.id===id)||{};
 const dotCls=a=>a.online===true?'on':a.online===false?'off':'';
 async function load(){
@@ -80,7 +80,7 @@ function home(){
  <div class="flow">
   <div class="step"><div class="hd"><span class="num">1</span>Kiểm thử</div><p>Chạy lint, build, test, quét khóa bí mật và thử giao diện cho repo trước khi phát hành.</p><div class="st">${last?`Lần gần nhất: <span class="pill ${last.failed?'bad':'ok'}">${last.failed?last.failed+' lỗi':'đạt'}</span> ${esc(last.repo)}`:'Chưa có lần chạy nào'}</div><button class="cta" data-go="test">Mở S Test Hub</button></div>
   <div class="arrow">›</div>
-  <div class="step"><div class="hd"><span class="num">2</span>Dựng app</div><p>Build app Mac, Windows, Android, iOS ngay trên MacBook, không tốn GitHub Actions.</p><div class="st">${stateOf(b)}</div><button class="cta" data-go="build">Mở S Build Hub</button></div>
+  <div class="step"><div class="hd"><span class="num">2</span>Dựng app</div><p>Build app Mac, Windows, Android, iOS ngay trên MacBook, không tốn GitHub Actions.</p><div class="st">${stateOf(b)}</div><button class="cta" data-go="build">Mở S Build Hub</button> <button class="ghost s" data-go="xpub" title="Tạo cụm 12 từ và xpub cho S Prime CopyTrade Pay">🔑 S Xpub</button></div>
   <div class="arrow">›</div>
   <div class="step"><div class="hd"><span class="num">3</span>Triển khai</div><p>Đưa mã lên VPS, tự cập nhật, backup nhiều phiên bản, quản lý Docker và dọn rác.</p><div class="st">${servers.length?`<i class="dot on"></i>${servers.length} server đã thêm`:'<i class="dot"></i>Chưa thêm server'}</div><button class="cta" data-go="vps">Mở S VPS</button></div>
  </div>

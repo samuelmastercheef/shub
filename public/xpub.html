@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Xpub</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,'Be Vietnam Pro',sans-serif;padding:18px 24px;max-width:860px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+textarea,input{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit;width:100%}
+textarea{min-height:76px;resize:vertical;font-family:ui-monospace,Menlo,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.mut{color:var(--mut)}.err{color:var(--bad)}.ok{color:var(--ok)}[hidden]{display:none!important}
+.box{font-family:ui-monospace,Menlo,monospace;word-break:break-all;background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px}
+.warn{border:1px solid var(--warn);border-radius:8px;padding:10px 12px;background:transparent}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--line);font-size:13px;word-break:break-all}th{color:var(--mut);font-size:12px}
+.seed{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}.seed span{background:var(--in);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-family:ui-monospace,Menlo,monospace}.seed i{color:var(--mut);font-style:normal;margin-right:6px;font-size:11px}
+</style></head><body>
+<div class="card warn"><b>Chạy hoàn toàn trong trang này, trên máy bạn.</b> Cụm từ không gửi cho S Hub, không gọi mạng (trình duyệt bị chặn mọi kết nối của trang), không ghi file, không lưu vào lịch sử. Đóng hoặc tải lại trang là mất sạch. Nên ngắt mạng khi dùng. Không dán cụm từ hoặc khoá riêng vào chat, CI hay công cụ build.</div>
+
+<div class="card"><h2>1. Nguồn cụm từ</h2>
+ <div class="row"><button class="cta" id="gen">Tạo ví mới (12 từ)</button><button class="ghost" id="gen24">Tạo 24 từ</button><span class="mut">hoặc nhập cụm từ có sẵn:</span></div>
+ <textarea id="m" placeholder="từ1 từ2 … từ12 (tiếng Anh, BIP39)" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+ <div class="row"><button id="go">Tính xpub</button><button class="ghost" id="clr">Xoá sạch</button><span id="st" class="mut"></span></div>
+ <div id="newseed" hidden><div class="warn" style="margin-bottom:8px"><b>Cụm từ vừa tạo.</b> Viết ra giấy và cất kỹ, không chụp màn hình, không gửi qua chat. Ai có cụm này là lấy được toàn bộ tiền nạp.</div><div class="seed" id="seed"></div></div>
+</div>
+
+<div class="card" id="out" hidden><h2>2. Kết quả</h2>
+ <div class="mut">XPUB (đường dẫn m/44'/60'/0'/0), dán vào Admin › Ví › Cài đặt &amp; cổng › xpub:</div>
+ <div class="box" id="xp"></div>
+ <div class="row"><button id="cp">Sao chép xpub</button><span id="len" class="mut"></span></div>
+ <div class="mut" style="margin-top:8px">Địa chỉ nạp mẫu, đối chiếu với trang Admin (#0–#2). Địa chỉ nạp thứ i của thành viên = m/44'/60'/0'/0/i:</div>
+ <table><thead><tr><th>#</th><th>Địa chỉ</th></tr></thead><tbody id="ad"></tbody></table>
+ <div class="row" style="margin-top:12px"><input id="cmp" placeholder="Dán địa chỉ #0 đang thấy trên Admin để đối chiếu" style="flex:1"><span id="cmpr"></span></div>
+ <p class="mut" style="font-size:12.5px">Ví chính (nhận USDT) và Ví phí (BNB gas) là hai ví riêng bạn nhập ở tab "Xpub &amp; gom tiền". Ví phí nên là ví khác, tránh trùng địa chỉ nạp #0. Gom tiền về ví chính bằng cách import cụm từ vào MetaMask/Trust Wallet hoặc ký offline bằng <code>tools/gen-xpub/sweep.mjs</code> của repo server.</p>
+</div>
+<div id="msg" hidden></div>
+<script src="/xpub-words.js"></script><script src="/xpub-core.js"></script><script src="/xpub.js"></script>
+</body></html>
