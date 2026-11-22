@@ -44,6 +44,8 @@ else echo ok; fi\n`, { mode: 0o755 });
     const pf = JSON.parse(require('child_process').execSync(`ffprobe -v error -show_entries stream=width,height,codec_name -of json "${WS}/downloads/creator/${id}/video.mp4"`)).streams; ok(pf.some((s) => s.codec_name === 'h264' && s.width === 1080 && s.height === 1920), 'video 1080x1920 h264');
     ok(fs.existsSync(`${WS}/downloads/creator/${id}/video.srt`), 'có phụ đề .srt');
     const fl = JSON.parse((await get('/api/files?category=creator', P)).t); ok(fl.total >= 1, 'file video hiện trong Kho file (danh mục creator)');
+    ok(JSON.parse((await get('/api/cr/image/detect', P)).t).found === false, 'dò Draw Things: chưa bật thì báo không thấy');
+    ok((await post('/api/cr/image/enable', { url: 'http://evil.example.com:7860' }, P)).s === 400, 'chặn bật server ảnh ngoài localhost');
     // server ảnh (Draw Things / A1111)
     ok((await post('/api/cr/settings/save', { imageSteps: 99 }, P)).s === 400, 'chặn số bước ngoài khoảng');
     await post('/api/cr/settings/save', { imageApi: 'http://127.0.0.1:' + img.address().port, imageSteps: 6, imageCfg: 2, imageStyle: 'flat cartoon' }, P);
