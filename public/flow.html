@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Thiết kế workflow</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--bg);color:var(--tx);font:13.5px/1.45 'Be Vietnam Pro',-apple-system,sans-serif;display:grid;grid-template-rows:auto 1fr auto;overflow:hidden}
+input,select,textarea{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:6px 8px;border-radius:8px;font:inherit;width:100%}
+textarea{min-height:90px;font:12px ui-monospace,Menlo,monospace;resize:vertical}
+#bar{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap}#bar input{width:auto}#bar .sp{flex:1}
+button{white-space:nowrap}button.s{padding:5px 11px}
+#main{display:grid;grid-template-columns:170px 1fr 300px;min-height:0}
+#pal{background:var(--card);border-right:1px solid var(--line);padding:10px;overflow:auto}
+#pal h3,#ins h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.pi{display:flex;gap:8px;align-items:center;padding:8px 10px;margin-bottom:7px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:grab;user-select:none}.pi:active{cursor:grabbing}.pi i{width:10px;height:10px;border-radius:3px;flex:none}.pi small{display:block;color:var(--mut);font-size:11px;line-height:1.2}
+#cv{position:relative;overflow:hidden;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:22px 22px;cursor:grab;touch-action:none}#cv.pan{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#edges{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}#edges path{fill:none;stroke:var(--mut);stroke-width:2;pointer-events:stroke;cursor:pointer}#edges path:hover,#edges path.sel{stroke:var(--acc);stroke-width:3.5}#edges path.tmp{stroke-dasharray:5 4;pointer-events:none}
+#edges text{fill:var(--mut);font-size:10px;pointer-events:none}
+.nd{position:absolute;width:210px;background:var(--card);border:1.5px solid var(--line);border-radius:12px;box-shadow:var(--shadow);user-select:none}.nd.sel{border-color:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 25%,transparent)}
+.nd .h{display:flex;gap:7px;align-items:center;padding:8px 10px;cursor:move;border-radius:12px 12px 0 0}.nd .h i{width:10px;height:10px;border-radius:3px;flex:none}.nd .h b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nd .h span{font-size:10.5px;color:var(--mut)}
+.nd .b{padding:0 10px 9px;color:var(--mut);font-size:12px;max-height:44px;overflow:hidden}
+.nd .in{position:absolute;left:-8px;top:18px;width:14px;height:14px;border-radius:50%;background:var(--card);border:2px solid var(--mut)}
+.nd .out{position:absolute;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--acc);border:2px solid var(--card);cursor:crosshair}.nd .out:hover{transform:scale(1.25)}
+.nd .ol{position:absolute;right:12px;font-size:10px;color:var(--mut)}
+.nd.run{border-color:var(--warn)}.nd.done{border-color:var(--ok)}.nd.error{border-color:var(--bad)}
+#ins{background:var(--card);border-left:1px solid var(--line);padding:12px;overflow:auto;display:grid;gap:10px;align-content:start}#ins label{display:grid;gap:3px;font-weight:500}
+#log{border-top:1px solid var(--line);background:var(--card);max-height:34vh;overflow:auto;padding:0 12px}#log:empty{display:none}#log pre{background:var(--logbg);color:var(--logtx);padding:8px;border-radius:8px;white-space:pre-wrap;font:12px/1.4 ui-monospace,Menlo,monospace;max-height:140px;overflow:auto;margin:4px 0 10px}
+#hint{position:absolute;left:12px;bottom:10px;color:var(--mut);font-size:12px;background:var(--card);padding:4px 10px;border-radius:8px;border:1px solid var(--line);pointer-events:none}
+#msg{position:fixed;right:20px;top:60px;background:var(--card);border:1px solid var(--line);padding:9px 14px;border-radius:10px;box-shadow:var(--shadow);z-index:9}
+@media(max-width:900px){#main{grid-template-columns:130px 1fr}#ins{display:none}}
+[hidden]{display:none!important}
+</style></head><body>
+<div id="bar"><input id="nm" placeholder="Tên workflow" style="min-width:200px;font-weight:600"><input id="cat" placeholder="Nhóm" style="width:110px">
+ <button class="ghost s" id="bl">Tự xếp gọn</button><button class="ghost s" id="bf">Vừa khung</button><button class="ghost s" id="bz">−</button><button class="ghost s" id="bp">+</button>
+ <span class="sp"></span><input id="inp" placeholder="Dữ liệu đầu vào khi chạy" style="width:230px"><button class="ghost s" id="br">▶ Chạy</button><button class="cta" id="bs">Lưu</button></div>
+<div id="main"><aside id="pal"><h3>Kéo thẻ vào khung</h3></aside>
+ <div id="cv"><div id="world"><svg id="edges"></svg><div id="nodes"></div></div><div id="hint">Kéo thẻ từ trái • kéo chấm vàng sang thẻ khác để nối • Delete xóa thẻ/đường nối • cuộn để zoom</div></div>
+ <aside id="ins"><h3>Cấu hình</h3><div id="insb" style="color:var(--mut)">Chọn một thẻ để chỉnh.</div></aside></div>
+<div id="log"></div><div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TYPES={trigger:{l:'Đầu vào',c:'#3FCB8A',d:'Dữ liệu bắt đầu',outs:['out'],cfg:[['text','Nội dung mẫu','t']],ins:false},
+ claude:{l:'Claude',c:'#FF8A5B',d:'Một lượt hỏi Claude',outs:['out'],cfg:[['system','Vai trò hệ thống','t'],['prompt','Prompt ({{input}} = dữ liệu vào)','a']]},
+ agent:{l:'Agent',c:'#0B7F8F',d:'Làm theo quy trình',outs:['out'],cfg:[['role','Vai trò','t'],['procedure','Quy trình từng bước','a'],['tools','Công cụ gợi ý','t']]},
+ tool:{l:'Công cụ',c:'#8FA6B4',d:'API / MCP (giả lập)',outs:['out'],cfg:[['name','Tên công cụ','t'],['desc','Mô tả','t'],['mock','Kết quả giả lập','a']]},
+ code:{l:'Mã JS',c:'#C9B020',d:'Ghi chú xử lý dữ liệu',outs:['out'],cfg:[['code','Mã','a']]},
+ condition:{l:'Điều kiện',c:'#FFB020',d:'Rẽ nhánh Đúng/Sai',outs:['true','false'],cfg:[['question','Câu hỏi Có/Không','a']]},
+ human:{l:'Người duyệt',c:'#C4547F',d:'Chờ người xác nhận',outs:['ok','no'],cfg:[['message','Thông điệp','a']]},
+ output:{l:'Kết quả',c:'#8E7CFF',d:'Điểm kết thúc',outs:[],cfg:[]}};
+const PL={out:'',true:'Đúng',false:'Sai',ok:'Duyệt',no:'Từ chối'};
+let F={id:'',name:'Workflow mới',category:'Chung',summary:'',nodes:[],edges:[]},V={x:40,y:40,z:1},sel=null,selE=null,dirty=false,st={};
+const say=(m,b)=>{const x=$('msg');x.textContent=m;x.style.color=b?'var(--bad)':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,4500)};
+const uid=t=>t+'-'+Math.random().toString(36).slice(2,6);
+// palette
+$('pal').insertAdjacentHTML('beforeend',Object.entries(TYPES).map(([k,t])=>`<div class="pi" draggable="true" data-t="${k}"><i style="background:${t.c}"></i><div><b>${t.l}</b><small>${t.d}</small></div></div>`).join(''));
+document.querySelectorAll('.pi').forEach(p=>{p.ondragstart=e=>{e.dataTransfer.setData('text/plain',p.dataset.t);e.dataTransfer.effectAllowed='copy'};p.ondblclick=()=>addNode(p.dataset.t,...centerW())});
+const cv=$('cv');const toW=(cx,cy)=>{const r=cv.getBoundingClientRect();return [(cx-r.left-V.x)/V.z,(cy-r.top-V.y)/V.z]};const centerW=()=>{const r=cv.getBoundingClientRect();return [(r.width/2-V.x)/V.z-105,(r.height/2-V.y)/V.z-30]};
+cv.ondragover=e=>{e.preventDefault()};cv.ondrop=e=>{e.preventDefault();const t=e.dataTransfer.getData('text/plain');if(TYPES[t]){const [x,y]=toW(e.clientX,e.clientY);addNode(t,x-105,y-20)}};
+function addNode(t,x,y){const T=TYPES[t];const n={id:uid(t),type:t,name:T.l+' '+(F.nodes.filter(a=>a.type===t).length+1),x:Math.round(x),y:Math.round(y),cfg:{}};T.cfg.forEach(([k])=>n.cfg[k]=k==='prompt'?'{{input}}':'');F.nodes.push(n);sel=n.id;selE=null;dirty=true;draw()}
+function apply(){$('world').style.transform=`translate(${V.x}px,${V.y}px) scale(${V.z})`}
+const NH=62,portY=(n,i)=>{const o=TYPES[n.type].outs.length;return o<=1?31:50+i*24};
+function draw(){apply();const h=$('nodes');h.innerHTML=F.nodes.map(n=>{const T=TYPES[n.type];const body=T.cfg.length?E((n.cfg[T.cfg[T.cfg.length>1?1:0][0]]||'').slice(0,70)):T.d;const s=st[n.id]||'';
+ return `<div class="nd ${n.id===sel?'sel':''} ${s}" data-id="${n.id}" style="left:${n.x}px;top:${n.y}px;min-height:${TYPES[n.type].outs.length>1?96:NH}px">${T.ins===false?'':'<span class="in"></span>'}<div class="h"><i style="background:${T.c}"></i><b>${E(n.name)}</b><span>${T.l}</span></div><div class="b">${body||'&nbsp;'}</div>
+ ${T.outs.map((o,i)=>`<span class="out" data-p="${o}" style="top:${portY(n,i)-8+(T.outs.length>1?0:0)}px"></span>${T.outs.length>1?`<span class="ol" style="top:${portY(n,i)-8}px">${PL[o]}</span>`:''}`).join('')}</div>`}).join('');
+ // chiều cao thật để vẽ nối chính xác
+ edges();inspector()}
+function edges(tmp){const g=[];F.edges.forEach((e,i)=>{const a=F.nodes.find(n=>n.id===e.from),b=F.nodes.find(n=>n.id===e.to);if(!a||!b)return;const ai=TYPES[a.type].outs.indexOf(e.port);const x1=a.x+210+8,y1=a.y+portY(a,Math.max(0,ai)),x2=b.x-8,y2=b.y+25,dx=Math.max(50,Math.abs(x2-x1)/2);
+ g.push(`<path data-e="${i}" class="${selE===i?'sel':''}" d="M${x1} ${y1} C${x1+dx} ${y1} ${x2-dx} ${y2} ${x2} ${y2}"/>`);if(PL[e.port])g.push(`<text x="${(x1+x2)/2}" y="${(y1+y2)/2-6}" text-anchor="middle">${PL[e.port]}</text>`)});
+ if(tmp)g.push(`<path class="tmp" d="M${tmp[0]} ${tmp[1]} C${tmp[0]+60} ${tmp[1]} ${tmp[2]-60} ${tmp[3]} ${tmp[2]} ${tmp[3]}"/>`);$('edges').innerHTML=g.join('')}
+// tương tác
+cv.addEventListener('pointerdown',e=>{
+ const out=e.target.closest('.out'),nd=e.target.closest('.nd'),hd=e.target.closest('.nd .h');
+ if(out){e.preventDefault();const n=F.nodes.find(x=>x.id===nd.dataset.id),p=out.dataset.p,i=TYPES[n.type].outs.indexOf(p);const sx=n.x+218,sy=n.y+portY(n,i);
+  const mv=ev=>{const [x,y]=toW(ev.clientX,ev.clientY);edges([sx,sy,x,y])},up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);const t=document.elementFromPoint(ev.clientX,ev.clientY),tn=t&&t.closest('.nd');
+   if(tn&&tn.dataset.id!==n.id&&TYPES[F.nodes.find(x=>x.id===tn.dataset.id).type].ins!==false){if(!F.edges.some(x=>x.from===n.id&&x.to===tn.dataset.id&&x.port===p)){F.edges.push({from:n.id,to:tn.dataset.id,port:p});dirty=true}}edges()};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);return}
+ if(e.target.closest('#edges path')){selE=+e.target.closest('path').dataset.e;sel=null;edges();inspector();return}
+ if(nd){sel=nd.dataset.id;selE=null;const n=F.nodes.find(x=>x.id===sel);if(hd){const ox=e.clientX,oy=e.clientY,nx=n.x,ny=n.y;const mv=ev=>{n.x=Math.round(nx+(ev.clientX-ox)/V.z);n.y=Math.round(ny+(ev.clientY-oy)/V.z);nd.style.left=n.x+'px';nd.style.top=n.y+'px';edges();dirty=true},up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up)};addEventListener('pointermove',mv);addEventListener('pointerup',up)}
+  document.querySelectorAll('.nd').forEach(x=>x.classList.toggle('sel',x.dataset.id===sel));inspector();return}
+ sel=null;selE=null;cv.classList.add('pan');const ox=e.clientX,oy=e.clientY,vx=V.x,vy=V.y;const mv=ev=>{V.x=vx+ev.clientX-ox;V.y=vy+ev.clientY-oy;apply()},up=()=>{cv.classList.remove('pan');removeEventListener('pointermove',mv);removeEventListener('pointerup',up)};addEventListener('pointermove',mv);addEventListener('pointerup',up);draw()});
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect(),k=Math.exp(-e.deltaY*.0015),z=Math.min(1.8,Math.max(.3,V.z*k)),mx=e.clientX-r.left,my=e.clientY-r.top;V.x=mx-(mx-V.x)*z/V.z;V.y=my-(my-V.y)*z/V.z;V.z=z;apply()},{passive:false});
+addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;if(e.key==='Delete'||e.key==='Backspace'){if(selE!==null){F.edges.splice(selE,1);selE=null;dirty=true;draw()}else if(sel){F.nodes=F.nodes.filter(n=>n.id!==sel);F.edges=F.edges.filter(x=>x.from!==sel&&x.to!==sel);sel=null;dirty=true;draw()}}});
+function inspector(){const b=$('insb');if(selE!==null&&F.edges[selE]){const e=F.edges[selE];b.innerHTML=`Đường nối: <b>${E(nm(e.from))}</b> → <b>${E(nm(e.to))}</b><br><br><button class="ghost s" id="de">Xóa đường nối</button>`;$('de').onclick=()=>{F.edges.splice(selE,1);selE=null;dirty=true;draw()};return}
+ const n=F.nodes.find(x=>x.id===sel);if(!n){b.innerHTML='Chọn một thẻ để chỉnh.<br><br>Mẹo: nhấp đúp thẻ ở cột trái để thêm vào giữa khung.';return}
+ const T=TYPES[n.type];b.innerHTML=`<label>Tên thẻ<input id="f_name" value="${E(n.name)}"></label>`+T.cfg.map(([k,l,t])=>`<label>${l}${t==='a'?`<textarea data-k="${k}">${E(n.cfg[k]||'')}</textarea>`:`<input data-k="${k}" value="${E(n.cfg[k]||'')}">`}</label>`).join('')+`<button class="ghost s" id="dn" style="color:var(--bad)">Xóa thẻ</button>`;
+ $('f_name').oninput=e=>{n.name=e.target.value;dirty=true;document.querySelector(`.nd[data-id="${n.id}"] .h b`).textContent=n.name};
+ b.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{n.cfg[i.dataset.k]=i.value;dirty=true});$('dn').onclick=()=>{F.nodes=F.nodes.filter(x=>x.id!==n.id);F.edges=F.edges.filter(x=>x.from!==n.id&&x.to!==n.id);sel=null;dirty=true;draw()}}
+const nm=id=>(F.nodes.find(n=>n.id===id)||{}).name||'?';
+function layout(){const ind={},lv={};F.nodes.forEach(n=>ind[n.id]=0);F.edges.forEach(e=>ind[e.to]++);const q=F.nodes.filter(n=>!ind[n.id]).map(n=>n.id);q.forEach(i=>lv[i]=0);const c={...ind};while(q.length){const i=q.shift();F.edges.filter(e=>e.from===i).forEach(e=>{lv[e.to]=Math.max(lv[e.to]||0,lv[i]+1);if(!--c[e.to])q.push(e.to)})}
+ const cols={};F.nodes.forEach(n=>(cols[lv[n.id]||0]=cols[lv[n.id]||0]||[]).push(n));Object.entries(cols).forEach(([c,ns])=>ns.forEach((n,i)=>{n.x=40+c*290;n.y=40+i*130}));dirty=true;draw();fit()}
+function fit(){if(!F.nodes.length)return;const r=cv.getBoundingClientRect();const x0=Math.min(...F.nodes.map(n=>n.x)),y0=Math.min(...F.nodes.map(n=>n.y)),x1=Math.max(...F.nodes.map(n=>n.x+220)),y1=Math.max(...F.nodes.map(n=>n.y+90));V.z=Math.min(1.2,Math.max(.3,Math.min((r.width-60)/(x1-x0),(r.height-60)/(y1-y0))));V.x=(r.width-(x1-x0)*V.z)/2-x0*V.z;V.y=(r.height-(y1-y0)*V.z)/2-y0*V.z;apply()}
+$('bl').onclick=layout;$('bf').onclick=fit;$('bz').onclick=()=>{V.z=Math.max(.3,V.z/1.2);apply()};$('bp').onclick=()=>{V.z=Math.min(1.8,V.z*1.2);apply()};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok&&!d.logs||d.ok===false&&!d.logs)throw new Error(d.error||'Lỗi');return d};
+async function save(){F.name=$('nm').value.trim()||'Workflow';F.category=$('cat').value.trim()||'Chung';if(!F.nodes.length)return say('Hãy kéo ít nhất một thẻ vào khung',1);
+ const d=await api('/api/cl/flow/save',{id:F.id||undefined,flow:F});F.id=d.id;dirty=false;say('Đã lưu');try{parent.postMessage({shub:'flow-saved',id:d.id},'*')}catch{}return d}
+$('bs').onclick=()=>save().catch(e=>say(e.message,1));
+$('br').onclick=async()=>{try{await save();st={};draw();$('log').innerHTML='<p style="color:var(--mut)">Đang chạy từng thẻ bằng "claude -p"… có thể mất vài phút.</p>';$('br').disabled=true;
+ const r=await api('/api/cl/flow/run',{id:F.id,input:$('inp').value});(r.logs||[]).forEach(l=>st[l.id]=l.status==='done'?'done':l.status==='error'?'error':'');draw();
+ $('log').innerHTML=(r.error?`<p style="color:var(--bad)">${E(r.error)}</p>`:'')+(r.logs||[]).map(l=>`<div><b>${E(l.name)}</b> <span style="color:var(--mut)">${l.status}${l.ms?' · '+(l.ms/1000).toFixed(1)+'s':''}</span>${l.out?`<pre>${E(l.out)}</pre>`:''}</div>`).join('')}catch(e){say(e.message,1);$('log').innerHTML=''}$('br').disabled=false};
+addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+(async()=>{const id=new URLSearchParams(location.search).get('id');if(id){try{F=(await api('/api/cl/flow?id='+encodeURIComponent(id))).flow}catch(e){say(e.message,1)}}
+ $('nm').value=F.name;$('cat').value=F.category;$('nm').oninput=()=>dirty=true;draw();requestAnimationFrame(()=>F.nodes.length?fit():(V={x:40,y:40,z:1},apply()))})();
+</script></body></html>

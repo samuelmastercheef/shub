@@ -19,7 +19,7 @@ svg.fg .nd{fill:var(--card);stroke:var(--line)}svg.fg text{fill:var(--tx);font-s
 <div class="tp" id="tp_ov"></div>
 <div class="tp" id="tp_wf" hidden>
  <div class="card"><h2>Workflow đã lưu</h2><div id="wfl"></div><div id="wfp"></div>
-  <div class="row" style="margin-top:10px"><button class="cta" id="wfi">+ Nhập workflow (JSON từ Flow Claude)</button></div></div>
+  <div class="row" style="margin-top:10px"><button class="cta" id="wfn">+ Workflow mới (kéo thả thẻ)</button><button class="ghost" id="wfi">Nhập JSON từ Flow Claude</button></div></div>
  <div class="card" id="wfv" hidden></div></div>
 <div class="tp" id="tp_cache" hidden></div>
 <div class="tp" id="tp_docs" hidden></div>
@@ -47,7 +47,7 @@ async function ov(){const d=await api('/api/cl/overview');
 /* ---- Workflow ---- */
 let WP=1,WF=[];
 async function wf(p){if(typeof p==='number')WP=p;WF=(await api('/api/cl/flows')).items;const {rows,pg}=pageOf(WF,WP,'wf',6);
- $('wfl').innerHTML=`<table><thead><tr><th>Tên</th><th>Nhóm</th><th>Node</th><th>Cập nhật</th><th></th></tr></thead><tbody>${rows.map(f=>`<tr><td><b>${E(f.name)}</b><div class="mut" style="font-size:12px">${E(f.summary)}</div></td><td>${E(f.category)}</td><td>${f.nodes} <span class="mut">(${Object.entries(f.types).map(([k,v])=>k+' '+v).join(', ')})</span></td><td>${UI.ago(new Date(f.updated).toISOString())}</td><td style="white-space:nowrap"><button class="ghost s" onclick="wfview('${f.id}')">Xem / chạy</button> <button class="ghost s" style="color:var(--bad)" onclick="wfdel('${f.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan=5 class="mut">Chưa có workflow. Bấm "Nhập workflow" và dán JSON xuất từ Flow Claude.</td></tr>'}</tbody></table>`;$('wfp').innerHTML=pg}
+ $('wfl').innerHTML=`<table><thead><tr><th>Tên</th><th>Nhóm</th><th>Node</th><th>Cập nhật</th><th></th></tr></thead><tbody>${rows.map(f=>`<tr><td><b>${E(f.name)}</b><div class="mut" style="font-size:12px">${E(f.summary)}</div></td><td>${E(f.category)}</td><td>${f.nodes} <span class="mut">(${Object.entries(f.types).map(([k,v])=>k+' '+v).join(', ')})</span></td><td>${UI.ago(new Date(f.updated).toISOString())}</td><td style="white-space:nowrap"><button class="ghost s" onclick="wfview('${f.id}')">Mở thiết kế</button> <button class="ghost s" style="color:var(--bad)" onclick="wfdel('${f.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan=5 class="mut">Chưa có workflow. Bấm "Nhập workflow" và dán JSON xuất từ Flow Claude.</td></tr>'}</tbody></table>`;$('wfp').innerHTML=pg}
 $('wfi').onclick=()=>{$('dbody').innerHTML=`<h2>Nhập workflow</h2><p class="mut">Trong Flow Claude, bấm "JSON / Spec" → JSON, copy rồi dán vào đây.</p><textarea id="wj" placeholder='{"name":"...","nodes":[...],"edges":[...]}'></textarea><div class="row" style="margin-top:8px"><input id="wc" placeholder="Nhóm (vd: CSKH)"><button class="cta" id="wok">Lưu workflow</button></div>`;dlg.showModal();
  $('wok').onclick=async()=>{try{const f=JSON.parse($('wj').value);f.category=$('wc').value||f.category;const d=await api('/api/cl/flow/save',{flow:f});dlg.close();say('Đã lưu: '+d.flow.name);wf()}catch(e){say(e.message,1)}}};
 async function wfdel(id){const n=prompt('Gõ đúng mã "'+id+'" để xóa workflow:');if(n===null)return;try{await api('/api/cl/flow/delete',{id,confirm:n});wf()}catch(e){say(e.message,1)}}
@@ -55,13 +55,9 @@ function graph(f){const lv={};const ind={};f.nodes.forEach(n=>ind[n.id]=0);f.edg
  const cols={};f.nodes.forEach(n=>(cols[lv[n.id]||0]=cols[lv[n.id]||0]||[]).push(n));const pos={};let W=0,H=0;Object.entries(cols).forEach(([c,ns])=>ns.forEach((n,i)=>{pos[n.id]={x:10+c*170,y:10+i*58};W=Math.max(W,10+c*170+150);H=Math.max(H,10+i*58+44)}));
  const color={trigger:'#3FCB8A',claude:'#FF8A5B',agent:'#0B7F8F',tool:'#8FA6B4',code:'#C9B020',condition:'#FFB020',human:'#C4547F',output:'#8E7CFF'};
  return `<svg class="fg" viewBox="0 0 ${W+10} ${H+10}" style="width:100%;min-width:${Math.min(W,760)}px">${f.edges.map(e=>{const a=pos[e.from],b=pos[e.to];return `<path d="M${a.x+150} ${a.y+22} C${a.x+165} ${a.y+22} ${b.x-15} ${b.y+22} ${b.x} ${b.y+22}"/>`}).join('')}${f.nodes.map(n=>{const p=pos[n.id];return `<g><rect class="nd" x="${p.x}" y="${p.y}" width="150" height="44" rx="8"/><rect x="${p.x}" y="${p.y}" width="5" height="44" rx="2" fill="${color[n.type]}"/><text x="${p.x+12}" y="${p.y+19}">${E(n.name.slice(0,20))}</text><text x="${p.x+12}" y="${p.y+34}" style="fill:var(--mut);font-size:10px">${n.type}</text></g>`}).join('')}</svg>`}
-async function wfview(id){const d=await api('/api/cl/flow?md=1&id='+id),f=d.flow;$('wfv').hidden=false;
- $('wfv').innerHTML=`<h2>${E(f.name)}</h2><p class="mut">${E(f.summary)}</p><div style="overflow:auto">${graph(f)}</div>
- <div class="row" style="margin-top:10px"><input id="wi" placeholder="Dữ liệu đầu vào (tuỳ chọn, thay cho node Đầu vào)"><button class="cta" id="wr">Chạy bằng Claude Code</button><button class="ghost" id="wm">Xem spec Markdown</button></div><div id="wo"></div>`;
- $('wm').onclick=()=>{$('wo').innerHTML=`<pre class="o">${E(d.markdown)}</pre>`};
- $('wr').onclick=async()=>{$('wr').disabled=true;$('wo').innerHTML='<span class="mut">Đang chạy từng node bằng lệnh "claude -p"… có thể mất vài phút.</span>';try{const r=await fetch('/api/cl/flow/run',{method:'POST',body:JSON.stringify({id,input:$('wi').value})}).then(r=>r.json());
-  $('wo').innerHTML=(r.error?`<div class="err">${E(r.error)}</div>`:'')+(r.logs||[]).map(l=>`<div style="margin:8px 0"><b>${E(l.name)}</b> <span class="badge ${l.status==='done'?'pub':l.status==='error'?'arc':'prv'}">${l.status}</span>${l.ms?` <span class="mut">${(l.ms/1000).toFixed(1)}s</span>`:''}${l.out?`<pre class="o">${E(l.out)}</pre>`:''}</div>`).join('')}catch(e){say(e.message,1)}$('wr').disabled=false};
- $('wfv').scrollIntoView({behavior:'smooth'})}
+function wfview(id){$('wfv').hidden=false;$('wfv').style.padding='0';$('wfv').innerHTML=`<iframe id="wfr" src="/flow.html${id?'?id='+encodeURIComponent(id):''}" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:var(--r2);display:block"></iframe>`;$('wfv').scrollIntoView({behavior:'smooth'})}
+$('wfn').onclick=()=>wfview('');
+addEventListener('message',e=>{if(e.data&&e.data.shub==='flow-saved')wf()});
 
 /* ---- Dọn cache ---- */
 let CD={};
