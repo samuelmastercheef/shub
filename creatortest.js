@@ -7,9 +7,14 @@ const fake = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b +=
   if (q.headers.authorization !== 'Bearer tok_1234567890abcdef') return j(401, { error: 'unauthorized' });
   if (q.url === '/api/integration/creator/accounts') return j(200, { accounts: [{ id: 'acc1', platform: 'tiktok', display_name: 'alter.sam96' }] });
   if (q.url === '/api/integration/creator/posts') { got.push(JSON.parse(b)); return j(201, { id: 'p-' + got.length }); } j(404, {}); }); });
+const mp3 = path.join(T, 'tone.mp3'); require('child_process').execSync(`ffmpeg -y -f lavfi -i sine=frequency=440:duration=1 -q:a 6 "${mp3}" 2>/dev/null`); const citHits = [];
+const cit = http.createServer((q, r) => { let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => {
+  if (q.url === '/health') { r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end('{"status":"ok","engine":"fake"}'); }
+  if (q.url === '/voices') { r.writeHead(200, { 'Content-Type': 'application/json' }); return r.end('[{"id":"thuy-dung","gender":"female","region":"South","isCloned":false}]'); }
+  if (q.url === '/api/tts/generate') { citHits.push(JSON.parse(b)); r.writeHead(200, { 'Content-Type': 'audio/mpeg' }); return r.end(fs.readFileSync(mp3)); } r.writeHead(404); r.end(); }); });
 const get = (p, port) => new Promise((res) => http.get({ host: '127.0.0.1', port, path: p }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, t: d, n: Number(r.headers['content-length'] || d.length) })); }));
 const post = (p, o, port) => new Promise((res) => { const rq = http.request({ host: '127.0.0.1', port, path: p, method: 'POST' }, (r) => { let d = ''; r.on('data', (x) => (d += x)); r.on('end', () => res({ s: r.statusCode, j: JSON.parse(d || '{}') })); }); rq.end(JSON.stringify(o)); });
-fake.listen(0, async () => {
+cit.listen(0); fake.listen(0, async () => {
   const bin = path.join(T, 'fakeclaude');
   fs.writeFileSync(bin, `#!/bin/bash
 if echo "$2" | grep -q "6 ý tưởng"; then echo '[{"title":"Mẹo 1","hook":"Bạn có biết?","angle":"vốn","format":"video"},{"title":"Mẹo 2","hook":"h","angle":"a","format":"video"}]';
@@ -36,6 +41,18 @@ else echo ok; fi\n`, { mode: 0o755 });
     const pf = JSON.parse(require('child_process').execSync(`ffprobe -v error -show_entries stream=width,height,codec_name -of json "${WS}/downloads/creator/${id}/video.mp4"`)).streams; ok(pf.some((s) => s.codec_name === 'h264' && s.width === 1080 && s.height === 1920), 'video 1080x1920 h264');
     ok(fs.existsSync(`${WS}/downloads/creator/${id}/video.srt`), 'có phụ đề .srt');
     const fl = JSON.parse((await get('/api/files?category=creator', P)).t); ok(fl.total >= 1, 'file video hiện trong Kho file (danh mục creator)');
+    // giọng CIT
+    const cp = cit.address().port;
+    ok((await post('/api/cr/settings/save', { citUrl: 'http://evil.example.com' }, P)).s === 400, 'chặn địa chỉ CIT không phải localhost');
+    await post('/api/cr/settings/save', { engine: 'cit', citUrl: 'http://127.0.0.1:' + cp, citVoice: 'thuy-dung' }, P);
+    const vl2 = (await get('/api/cr/voice/list', P)); const vj = JSON.parse(vl2.t); ok(vj.health.ok && vj.voices[0].id === 'thuy-dung', 'liệt kê giọng CIT');
+    const vt = await post('/api/cr/voice/test', { text: 'thử' }, P); ok(vt.j.ok && vt.j.audio.startsWith('data:audio/mpeg;base64,') && citHits.length === 1 && citHits[0].voice_id === 'thuy-dung', 'nghe thử giọng CIT');
+    await post('/api/cr/video/render', { id, voice: true, captions: false }, P);
+    for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'done' && v.video.voiceEngine === 'CIT' && citHits.length >= 3, 'dựng video dùng giọng CIT: ' + JSON.stringify(v.video).slice(0, 100));
+    cit.close(); await post('/api/cr/video/render', { id, voice: true, captions: false }, P);
+    for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
+    ok(v.video.status === 'done' && v.video.voiceEngine !== 'CIT', 'CIT tắt thì video vẫn dựng được (dự phòng): ' + v.video.voiceEngine);
     // cài đặt + Socin
     ok((await post('/api/cr/settings/save', { socinBaseUrl: 'http://evil.example.com', socinToken: 'tok_1234567890abcdef' }, P)).j.ok, 'lưu cài đặt Socin');
     ok(!JSON.stringify(JSON.parse((await get('/api/cr/settings', P)).t)).includes('tok_1234'), 'token không bị trả về client');

@@ -50,4 +50,4 @@ Trang Tổng quan theo quy trình: Kiểm thử → Dựng app → Triển khai.
 Cập nhật trên Mac: `cd ~/shub && git pull && ./start.command`. Test: `node newtest.js`.
 
 ## S Creator
-Tạo content, ảnh, video từ concept theo bước: Concept → Ý tưởng → Kịch bản → Ảnh → Video → Lịch đăng. Claude cục bộ viết ý tưởng/kịch bản; ảnh dựng bằng Playwright (thẻ thương hiệu), tải lên hoặc server ảnh tương thích A1111; video ghép bằng ffmpeg (`brew install ffmpeg`). Lịch đăng đẩy bài nháp sang Socin qua khoá API, xem `docs/creator-socin.md`. Test: `node creatortest.js`.
+Tạo content, ảnh, video từ concept theo bước: Concept → Ý tưởng → Kịch bản → Ảnh → Video → Lịch đăng. Claude cục bộ viết ý tưởng/kịch bản; giọng đọc dùng CIT Voice Studio (cổng 8001, tự quay về `say` của macOS nếu CIT tắt), ảnh dựng bằng Playwright (thẻ thương hiệu), tải lên hoặc server ảnh tương thích A1111; video ghép bằng ffmpeg (`brew install ffmpeg`). Lịch đăng đẩy bài nháp sang Socin qua khoá API, xem `docs/creator-socin.md`. Test: `node creatortest.js`.

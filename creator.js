@@ -19,8 +19,8 @@ module.exports = function init({ WS, json, body }) {
   const has = (bin) => spawnSync('which', [bin]).status === 0;
 
   // ---- cài đặt (token Socin lưu mode 600, không bao giờ trả về client) ----
-  const getSet = () => ({ imageApi: '', voice: 'Linh', socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) });
-  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, voice: s.voice, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
+  const getSet = () => ({ imageApi: '', voice: 'Linh', engine: 'cit', citUrl: 'http://127.0.0.1:8001', citVoice: '', socin: { baseUrl: '', token: '' }, ...rj(SETF, {}) });
+  const pubSet = () => { const s = getSet(); return { imageApi: s.imageApi, voice: s.voice, engine: s.engine, citUrl: s.citUrl, citVoice: s.citVoice, socin: { baseUrl: s.socin.baseUrl, hasToken: !!s.socin.token }, tools: { ffmpeg: has('ffmpeg'), say: has('say'), playwright: (() => { try { require.resolve('playwright'); return true; } catch { return false; } })() } }; };
 
   // ---- Claude ----
   const CLAUDE = () => process.env.SHUB_CLAUDE_BIN || 'claude';
@@ -52,15 +52,27 @@ module.exports = function init({ WS, json, body }) {
   const dur = (f) => { const r = spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }); return parseFloat(r.stdout) || 0; };
   const wrap = (t, n = 26) => { const w = String(t).split(/\s+/), L = []; let c = ''; w.forEach((x) => { if ((c + ' ' + x).trim().length > n) { L.push(c); c = x; } else c = (c + ' ' + x).trim(); }); if (c) L.push(c); return L.join('\n'); };
   const srtT = (s) => { const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${x.toFixed(3).replace('.', ',').padStart(6, '0')}`; };
+  // ---- giọng đọc CIT Voice Studio (chạy cục bộ, mặc định 127.0.0.1:8001) ----
+  const citH = () => ({ 'content-type': 'application/json', ...(process.env.CIT_VOICE_API_KEY ? { 'x-api-key': process.env.CIT_VOICE_API_KEY } : {}) });
+  const citBase = () => getSet().citUrl.replace(/\/$/, '');
+  async function citHealth() { try { const r = await fetch(citBase() + '/health', { headers: citH(), signal: AbortSignal.timeout(4000) }); const j = await r.json().catch(() => ({})); return r.ok && j.status === 'ok' ? { ok: true, engine: j.engine || null } : { ok: false, error: j.message || 'HTTP ' + r.status }; } catch { return { ok: false, error: 'Không kết nối được CIT Voice Studio tại ' + citBase() + ' (mở ứng dụng và đợi tải xong)' }; } }
+  async function citVoices() { const r = await fetch(citBase() + '/voices', { headers: citH(), signal: AbortSignal.timeout(15000) }); if (!r.ok) throw new Error('Không lấy được danh sách giọng CIT'); return (await r.json()).map((v) => ({ id: v.id, gender: v.gender || null, region: v.region || null, description: v.description || '', cloned: !!v.isCloned })); }
+  async function citSpeak(text, voiceId, out, speed = 1.0) {
+    const r = await fetch(citBase() + '/api/tts/generate', { method: 'POST', headers: citH(), body: JSON.stringify({ text, speed, format: 'mp3', ...(voiceId ? { voice_id: voiceId } : {}) }), signal: AbortSignal.timeout(300000) });
+    if (!r.ok) throw new Error('CIT Voice Studio lỗi HTTP ' + r.status);
+    if (!(r.headers.get('content-type') || '').startsWith('audio/')) throw new Error('CIT Voice Studio không trả về âm thanh');
+    fs.writeFileSync(out, Buffer.from(await r.arrayBuffer()));
+  }
   const jobs = new Set();
   async function render(id, opt) {
     const p = load(id), set = getSet(), dir = outDir(id), tmp = path.join(dir, '.tmp'); fs.mkdirSync(tmp, { recursive: true });
     const scenes = (p.script && p.script.scenes) || []; if (!scenes.length) throw new Error('Chưa có kịch bản');
-    const segs = []; let t = 0; const srt = []; const font = opt.captions !== false ? FONT() : null;
+    const citOk = opt.voice && set.engine === 'cit' && (await citHealth()).ok; let usedVoice = ''; const segs = []; let t = 0; const srt = []; const font = opt.captions !== false ? FONT() : null;
     for (let i = 0; i < scenes.length; i++) {
       const img = p.images[String(i + 1)]; if (!img) throw new Error(`Cảnh ${i + 1} chưa có ảnh`);
       let sec = Math.min(30, Math.max(2, Number(scenes[i].seconds) || 4)), audio = null;
-      if (opt.voice && has('say') && scenes[i].narration) { const a = path.join(tmp, `a${i}.aiff`); try { await run('say', ['-v', set.voice, '-o', a, scenes[i].narration], 120000); audio = a; sec = Math.max(sec, dur(a) + 0.5); } catch { audio = null; } }
+      if (opt.voice && citOk && scenes[i].narration) { const a = path.join(tmp, `a${i}.mp3`); try { await citSpeak(scenes[i].narration, set.citVoice, a); audio = a; sec = Math.max(sec, dur(a) + 0.5); usedVoice = 'CIT'; } catch { audio = null; } }
+      if (!audio && opt.voice && has('say') && scenes[i].narration) { const a = path.join(tmp, `a${i}.aiff`); try { await run('say', ['-v', set.voice, '-o', a, scenes[i].narration], 120000); audio = a; usedVoice = usedVoice || 'macOS'; sec = Math.max(sec, dur(a) + 0.5); } catch { audio = null; } }
       const seg = path.join(tmp, `s${i}.mp4`), frames = Math.round(sec * 30);
       let vf = `scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='min(zoom+0.0006,1.12)':d=${frames}:s=1080x1920:fps=30,format=yuv420p`;
       const cap = scenes[i].text || scenes[i].narration;
@@ -74,7 +86,7 @@ module.exports = function init({ WS, json, body }) {
     fs.writeFileSync(path.join(tmp, 'list.txt'), segs.map((s) => `file '${s}'`).join('\n'));
     const out = path.join(dir, 'video.mp4'); await run('ffmpeg', ['-y', '-f', 'concat', '-safe', '0', '-i', path.join(tmp, 'list.txt'), '-c', 'copy', '-movflags', '+faststart', out]);
     fs.writeFileSync(path.join(dir, 'video.srt'), srt.join('\n')); fs.rmSync(tmp, { recursive: true, force: true });
-    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font, voice: !!opt.voice && has('say') };
+    return { file: 'video.mp4', seconds: Math.round(t), bytes: fs.statSync(out).size, captions: !!font, voice: !!opt.voice && !!usedVoice, voiceEngine: usedVoice || null };
   }
 
   // ---- đăng: adapter ----
@@ -123,9 +135,14 @@ module.exports = function init({ WS, json, body }) {
       const b = req.method === 'POST' ? await body(req) : {};
       if (route === 'settings/save') {
         const s = getSet(); if (b.imageApi !== undefined) { const v = clean(b.imageApi, 200); if (v && !/^https?:\/\/[\w.-]+(:\d+)?(\/[\w./-]*)?$/.test(v)) bad('Địa chỉ server ảnh không hợp lệ'); s.imageApi = v; }
+        if (b.engine !== undefined) { if (!['cit', 'say'].includes(b.engine)) bad('Nguồn giọng không hợp lệ'); s.engine = b.engine; }
+        if (b.citUrl !== undefined) { const v = clean(b.citUrl, 100).replace(/\/$/, ''); if (!/^http:\/\/(127\.0\.0\.1|localhost)(:\d{2,5})?$/.test(v)) bad('Địa chỉ CIT phải là http://127.0.0.1:<cổng> hoặc http://localhost:<cổng>'); s.citUrl = v; }
+        if (b.citVoice !== undefined) { const v = clean(b.citVoice, 80); if (v && !/^[\w .()-]{1,80}$/.test(v)) bad('Mã giọng không hợp lệ'); s.citVoice = v; }
         if (b.voice !== undefined) { const v = clean(b.voice, 40); if (!/^[\w ().-]{1,40}$/.test(v)) bad('Tên giọng không hợp lệ'); s.voice = v; }
         if (b.socinBaseUrl !== undefined) s.socin.baseUrl = clean(b.socinBaseUrl, 200).replace(/\/$/, ''); if (b.socinToken) { if (!/^[\w.~+-]{16,200}$/.test(b.socinToken)) bad('Token không hợp lệ'); s.socin.token = b.socinToken; } if (b.clearToken) s.socin.token = '';
         wj(SETF, s, 0o600); return json(res, 200, { ok: true, settings: pubSet() }), true; }
+      if (route === 'voice/list') { const h = await citHealth(); let voices = []; if (h.ok) { try { voices = await citVoices(); } catch (e) { h.ok = false; h.error = e.message; } } return json(res, 200, { ok: true, health: h, voices }), true; }
+      if (route === 'voice/test') { const t = clean(b.text, 200) || 'Xin chào, đây là giọng đọc thử của S Creator.'; const f = path.join(WS, 'creator', '.voice-test.mp3'); await citSpeak(t, clean(b.voice, 80) || getSet().citVoice, f); const buf = fs.readFileSync(f); fs.unlinkSync(f); return json(res, 200, { ok: true, audio: 'data:audio/mpeg;base64,' + buf.toString('base64') }), true; }
       if (route === 'socin/accounts') { const r = await socin('/api/integration/creator/accounts', 'GET'); return json(res, 200, { ok: true, accounts: (r && r.accounts) || [] }), true; }
       if (route === 'project/save') {
         const name = clean(b.name, 80), concept = clean(b.concept, 2000); if (!name) bad('Thiếu tên dự án'); if (concept.length < 5) bad('Hãy mô tả concept (ít nhất vài từ)');
