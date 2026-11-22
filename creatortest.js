@@ -21,6 +21,7 @@ cit.listen(0); img.listen(0); fake.listen(0, async () => {
   fs.writeFileSync(bin, `#!/bin/bash
 if echo "$2" | grep -q "6 ý tưởng"; then echo '[{"title":"Mẹo 1","hook":"Bạn có biết?","angle":"vốn","format":"video"},{"title":"Mẹo 2","hook":"h","angle":"a","format":"video"}]';
 elif echo "$2" | grep -q "biên kịch"; then echo 'Đây: {"title":"5 mẹo vốn","hook":"Dừng lại!","scenes":[{"seconds":2,"narration":"Xin chào các bạn","text":"Mẹo quản lý vốn","visual":"v","imagePrompt":"cartoon"},{"seconds":2,"narration":"Mẹo số một","text":"Luôn đặt dừng lỗ","visual":"v","imagePrompt":"cartoon"}],"captions":{"tiktok":{"title":"5 mẹo","text":"Nội dung","hashtags":["vốn","forex"]},"threads":{"title":"t","text":"x","hashtags":[]}}}';
+elif echo "$2" | grep -q "art director"; then echo '{"character":"A 25-year-old Vietnamese man, short black hair, white t-shirt","style":"flat 2D cartoon, teal palette","scenes":[{"imagePrompt":"checking phone at desk, shocked"},{"imagePrompt":"cheering with fireworks"}]}';
 else echo ok; fi\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(T, 'c.json'), JSON.stringify({ port: 4793, workspace: WS }));
   const srv = spawn('node', ['server.js'], { cwd: __dirname, env: { ...process.env, SHUB_CONFIG: path.join(T, 'c.json'), SHUB_CLAUDE_BIN: bin, SHUB_NO_TIMER: '1' }, stdio: 'ignore' });
@@ -40,6 +41,7 @@ else echo ok; fi\n`, { mode: 0o755 });
     ok((await post('/api/cr/video/render', { id, voice: false, captions: true }, P)).j.ok, 'bắt đầu dựng video');
     let v; for (let i = 0; i < 60; i++) { await new Promise((r) => setTimeout(r, 1000)); v = JSON.parse((await get('/api/cr/project?id=' + id, P)).t).project; if (v.video.status !== 'rendering') break; }
     ok(v.video.status === 'done' && v.video.bytes > 5000, 'video dựng xong: ' + JSON.stringify(v.video).slice(0, 120));
+    ok(fs.existsSync(`${WS}/downloads/creator/${id}/cover.png`), 'có ảnh bìa chứa hook');
     ok(v.video.captions === true && !v.video.warn, 'video có chữ' + (process.env.SHUB_NO_DRAWTEXT ? ' (ghép PNG vì ffmpeg thiếu drawtext)' : ''));
     const pf = JSON.parse(require('child_process').execSync(`ffprobe -v error -show_entries stream=width,height,codec_name -of json "${WS}/downloads/creator/${id}/video.mp4"`)).streams; ok(pf.some((s) => s.codec_name === 'h264' && s.width === 1080 && s.height === 1920), 'video 1080x1920 h264');
     ok(fs.existsSync(`${WS}/downloads/creator/${id}/video.srt`), 'có phụ đề .srt');
@@ -51,6 +53,10 @@ else echo ok; fi\n`, { mode: 0o755 });
     await post('/api/cr/settings/save', { imageApi: 'http://127.0.0.1:' + img.address().port, imageSteps: 6, imageCfg: 2, imageStyle: 'flat cartoon' }, P);
     const ig = await post('/api/cr/image/generate', { id, scene: 1, source: 'api' }, P);
     ok(ig.j.ok && imgHits.length === 1 && imgHits[0].steps === 6 && (process.env.IMG422 ? imgHits[0].cfg_scale === undefined && imgHits[0].guidance_scale === 2 : imgHits[0].cfg_scale === 2) && imgHits[0].prompt.startsWith('flat cartoon, ') && imgHits[0].width === 576 && imgHits[0].height === 1024, 'tạo ảnh qua server ảnh với steps/CFG/phong cách đã cấu hình');
+    const sty = await post('/api/cr/ai/style', { id }, P); ok(sty.j.ok && sty.j.project.script.character.startsWith('A 25-year-old') && sty.j.project.script.scenes[0].imagePrompt.includes('shocked'), 'Claude đồng bộ nhân vật + phong cách + prompt');
+    const n0 = imgHits.length; await post('/api/cr/image/generate', { id, scene: 1, source: 'api' }, P); await post('/api/cr/image/generate', { id, scene: 2, source: 'api' }, P);
+    ok(imgHits.length === n0 + 2 && imgHits[n0].seed === imgHits[n0 + 1].seed && imgHits[n0].seed > 0 && imgHits[n0].prompt.includes('A 25-year-old Vietnamese man') && imgHits[n0].prompt.indexOf('A 25-year-old') < imgHits[n0].prompt.indexOf('shocked'), 'cùng seed + nhân vật đặt trước prompt cảnh');
+    const rs = await post('/api/cr/image/reseed', { id }, P); ok(rs.j.ok && rs.j.project.seed === 0, 'đổi seed');
     // giọng CIT
     const cp = cit.address().port;
     ok((await post('/api/cr/settings/save', { citUrl: 'http://evil.example.com' }, P)).s === 400, 'chặn địa chỉ CIT không phải localhost');
