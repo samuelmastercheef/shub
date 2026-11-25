@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Zoom worker</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><script src="/charts.js"></script><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px;max-width:980px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+input,select{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit;width:100%}
+label{display:grid;gap:4px;font-weight:500;margin-bottom:10px}label small{font-weight:400;color:var(--mut)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.mut{color:var(--mut)}.err{color:var(--bad)}.ok{color:var(--ok)}[hidden]{display:none!important}
+.chk{display:flex;gap:8px;align-items:center;font-weight:400}.chk input{width:auto}
+.big{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px}.dot{width:10px;height:10px;border-radius:50%;background:var(--mut);display:inline-block}.dot.on{background:var(--ok)}.dot.off{background:var(--bad)}.dot.warn{background:var(--warn)}
+.warn{border:1px solid var(--warn);border-radius:8px;padding:10px 12px}
+pre{background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:380px;overflow:auto;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;margin:0}
+pre .s{color:var(--acc)}pre .e{color:var(--bad)}
+ol{margin:6px 0 0 18px;padding:0}ol li{margin:3px 0}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:440px;z-index:5}
+.busy{opacity:.6;pointer-events:none}
+</style></head><body>
+<div class="card warn"><b>Thử nghiệm.</b> Chỉ dùng cho họp do chính tài khoản Zoom doanh nghiệp của bạn tổ chức, không dùng với họp của khách. Mỗi bot là một Chrome riêng (~400–700 MB RAM), máy phải bật suốt thời gian giữ phòng.</div>
+
+<div class="card"><h2>Trạng thái</h2>
+ <div class="big"><i class="dot" id="dot"></i><span id="stt">…</span></div>
+ <div id="sub" class="mut" style="margin-top:4px"></div>
+ <div id="hint" class="err" style="margin-top:4px"></div>
+ <div class="row" style="margin-top:12px">
+  <button class="cta" id="bStart">▶ Bật worker</button><button id="bStop">■ Tắt</button><button class="ghost" id="bRestart">↻ Khởi động lại</button>
+  <button class="ghost" id="bInstall">⬇ Cài / cập nhật worker</button>
+ </div>
+ <div id="winfo" class="mut" style="font-size:12.5px"></div>
+</div>
+
+<div class="card"><h2>Kết nối Socin</h2>
+ <div class="mut" style="margin-bottom:10px">Khoá Zoom SDK (Client ID, Client Secret) nằm trong admin Socin, không cần ở đây. Không dùng file .env.</div>
+ <div id="linkBox" class="card" style="background:var(--bg);margin-bottom:12px"></div>
+ <div class="grid">
+  <label>Địa chỉ Socin <small>trống = theo kết nối S Creator, hoặc https://app.socin.org</small><input id="socinUrl" placeholder="https://app.socin.org" autocomplete="off"></label>
+  <label>Khoá worker dự phòng <small id="tokSt"></small><input id="token" type="password" placeholder="Dán khoá worker (để trống = giữ khoá đã lưu)" autocomplete="off" spellcheck="false"></label>
+ </div>
+ <ol class="mut" style="font-size:13px"><li>Đã liên kết theo tài khoản Socin thì bỏ qua bước này. Nếu chưa: mở Socin → <b>Cài đặt → 🎥 Zoom</b> → <b>Tạo khoá worker</b>, sao chép (chỉ hiện một lần), dán vào ô trên → <b>Lưu</b>.</li><li><b>Cài / cập nhật worker</b> (lần đầu) → <b>Bật worker</b>.</li><li>Quay lại Socin bấm <b>🔌 Kiểm tra kết nối</b>: mục "Worker đang liên lạc" phải đạt.</li></ol>
+ <details style="margin-top:10px"><summary class="mut">Tuỳ chọn nâng cao</summary>
+  <div class="grid" style="margin-top:10px">
+   <label>Tên worker<input id="workerId" placeholder="shub-mac"></label>
+   <label>Số bot chạy song song <small>mỗi bot ~400–700 MB RAM</small><input id="concurrency" type="number" min="1" max="8"></label>
+   <label>Tự vào lại khi rớt <small>0 = không (để thấy rõ độ ổn định)</small><input id="rejoinMax" type="number" min="0" max="5"></label>
+   <label>Đường dẫn Chrome có sẵn <small>trống = dùng Chromium tự tải</small><input id="chromePath" placeholder="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"></label>
+   <label>Thư mục zoom-worker riêng <small>trống = S Hub tự tải từ repo Socin</small><input id="workerDir" placeholder="~/social/zoom-worker"></label>
+  </div>
+  <label class="chk"><input type="checkbox" id="useLink"> Tự lấy khoá worker theo tài khoản Socin (khi S Creator đã kết nối Socin)</label>
+  <label class="chk"><input type="checkbox" id="autoStart"> Tự bật worker khi mở S Hub</label>
+  <label class="chk"><input type="checkbox" id="autoRestart"> Tự bật lại khi worker dừng bất ngờ (tối đa 5 lần / 10 phút)</label>
+ </details>
+ <div class="row"><button class="cta" id="bSave">Lưu</button><button class="ghost" id="bClearTok">Xoá khoá đã lưu</button></div>
+</div>
+
+<div class="card"><h2>Nhật ký</h2>
+ <div class="row"><label class="chk" style="margin:0"><input type="checkbox" id="follow" checked> Tự cuộn</label><button class="ghost s" id="bClear">Xoá nhật ký</button><span class="mut" style="font-size:12px">Khoá worker luôn được che (••••).</span></div>
+ <pre id="log"></pre>
+</div>
+<div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const say=(m,b)=>{const x=$('msg');x.textContent=m;x.className=b?'err':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,6500)};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||'Lỗi');return d};
+let S=null,since=0,filled=false;
+const ago=s=>s<60?s+' giây':s<3600?Math.floor(s/60)+' phút':Math.floor(s/3600)+' giờ '+Math.floor(s%3600/60)+' phút';
+function render(){
+ const h=S.health||{},w=S.worker,j=S.job;let dot='',t='',sub='';
+ if(j&&j.running){dot='warn';t='Đang cài / cập nhật worker…'}
+ else if(!S.running){dot='off';t='Worker đang tắt';sub=!w.present?'Chưa cài worker: bấm "Cài / cập nhật worker".':!w.deps?'Worker thiếu thư viện: bấm "Cài / cập nhật worker".':!S.settings.hasToken&&!(S.link&&S.link.enabled)?'Chưa có khoá worker: liên kết tài khoản Socin hoặc dán khoá.':'Sẵn sàng bật.';if(S.lastExit&&!S.lastExit.planned)sub='Lần trước dừng bất ngờ (mã '+E(S.lastExit.code??S.lastExit.signal)+'). '+sub}
+ else if(h.state==='error'){dot='off';t='Đang chạy nhưng lỗi kết nối Socin';sub=E(h.error)}
+ else{dot='on';t=h.busy?'Đang giữ phòng':'Đang chạy, chờ phiên từ Socin';sub='Chạy được '+ago(h.uptimeS||0)+' · pid '+S.pid+' · '+E(S.effectiveSocinUrl)}
+ $('dot').className='dot '+dot;$('stt').textContent=t;$('sub').innerHTML=sub;$('hint').textContent=(S.running&&h.hint)||(j&&!j.running&&j.ok===false?'Cài lỗi: '+j.error:'');
+ $('bStart').hidden=S.running;$('bStop').hidden=!S.running;$('bRestart').hidden=!S.running;$('bInstall').disabled=!!(j&&j.running);
+ $('winfo').textContent=w.present?`Worker ${w.version||''}${w.commit?' · '+w.commit:''} · ${w.dir}`:'Thư mục worker: '+w.dir;
+ const L=S.link;$('linkBox').innerHTML=L?`<b>🔗 Liên kết theo tài khoản Socin</b> <span class="mut">${E(L.baseUrl)} · qua kết nối của S Creator</span><div style="margin-top:4px">${!L.enabled?'<span class="mut">Đang tắt (Tuỳ chọn nâng cao) → dùng khoá dán.</span>':L.ok===true?'<span class="ok">✓ Socin đã giao khoá worker, không cần dán khoá.</span>':L.ok===false?'<span class="err">✗ '+E(L.error)+'</span>':'<span class="mut">Sẽ tự lấy khoá worker mỗi lần bật.</span>'}</div><div class="row"><button class="ghost s" id="bLink">Kiểm tra liên kết</button></div>`:`<b>Chưa liên kết tài khoản Socin.</b> <span class="mut">Mở <b>S Creator → Kết nối</b>, nhập địa chỉ Socin và khoá S Creator của <b>admin</b>: S Hub sẽ tự nhận khoá worker, không cần dán. Hoặc dán khoá worker dự phòng bên dưới.</span>`;
+ if($('bLink'))$('bLink').onclick=async()=>{try{const d=await api('/api/zoom/link-test',{});say(d.linkTest.ok?'Liên kết tốt: Socin giao khoá worker.':d.linkTest.error,!d.linkTest.ok);S=d;render()}catch(e){say(e.message,1)}};
+ $('socinUrl').placeholder=S.effectiveSocinUrl||'https://app.socin.org';
+ $('tokSt').innerHTML=S.settings.hasToken?'<span class="ok">✓ đã lưu</span>':S.link&&S.link.enabled?'<span class="mut">không cần khi đã liên kết</span>':'<span class="err">chưa có</span>';
+ if(!filled){const s=S.settings;for(const k of ['socinUrl','workerId','concurrency','rejoinMax','chromePath','workerDir'])$(k).value=s[k]??'';$('autoStart').checked=s.autoStart;$('useLink').checked=s.useLink;$('autoRestart').checked=s.autoRestart;filled=true}
+}
+async function refresh(){try{S=await api('/api/zoom/status');render()}catch(e){$('stt').textContent='Không đọc được trạng thái: '+e.message}}
+async function logs(){try{const d=await api('/api/zoom/logs?since='+since);if(d.lines.length){const p=$('log');p.insertAdjacentHTML('beforeend',d.lines.map(l=>`<span class="${l.src==='shub'?'s':/lỗi|error|Error|thất bại/.test(l.s)?'e':''}">${new Date(l.t).toLocaleTimeString('vi-VN')} [${E(l.src)}] ${E(l.s)}</span>\n`).join(''));since=d.lines[d.lines.length-1].t;if($('follow').checked)p.scrollTop=p.scrollHeight}}catch{}}
+const act=(id,fn)=>$(id).onclick=async()=>{const b=$(id);b.classList.add('busy');try{await fn()}catch(e){say(e.message,1)}finally{b.classList.remove('busy');refresh();logs()}};
+act('bSave',async()=>{const b={socinUrl:$('socinUrl').value,workerId:$('workerId').value,concurrency:+$('concurrency').value,rejoinMax:+$('rejoinMax').value,chromePath:$('chromePath').value,workerDir:$('workerDir').value,autoStart:$('autoStart').checked,autoRestart:$('autoRestart').checked,useLink:$('useLink').checked};if($('token').value.trim())b.token=$('token').value.trim();S=await api('/api/zoom/settings',b);$('token').value='';say(S.running?'Đã lưu. Bấm Khởi động lại để áp dụng.':'Đã lưu.')});
+act('bClearTok',async()=>{if(!confirm('Xoá khoá worker đã lưu trên máy này?'))return;await api('/api/zoom/settings',{clearToken:true});say('Đã xoá khoá.')});
+act('bInstall',async()=>{await api('/api/zoom/install',{});say('Đang cài, xem nhật ký bên dưới.')});
+act('bStart',async()=>{await api('/api/zoom/start',{});say('Đã bật worker.')});
+act('bStop',async()=>{await api('/api/zoom/stop',{});say('Đã tắt worker.')});
+act('bRestart',async()=>{await api('/api/zoom/restart',{});say('Đã khởi động lại.')});
+act('bClear',async()=>{await api('/api/zoom/clear-log',{});$('log').innerHTML=''});
+refresh();logs();setInterval(()=>{refresh();logs()},2000);
+</script>
+</body></html>

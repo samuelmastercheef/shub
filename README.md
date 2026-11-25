@@ -58,3 +58,13 @@ Tạo content, ảnh, video từ concept theo bước: Concept → Ý tưởng �
 Tạo cụm 12/24 từ hoặc nhập cụm có sẵn, tính **xpub** (đường dẫn `m/44'/60'/0'/0`, 111 ký tự) và 3 địa chỉ nạp mẫu `#0–#2` để đối chiếu với Admin › Ví. Kết quả khớp tool `tools/gen-xpub` của repo `sprime-xauusd-server`. Nằm trong nhóm "Dựng & kiểm thử", có nút tắt ở bước "Dựng app" trang chủ.
 
 An toàn: mọi phép tính chạy **trong trang web trên máy bạn**, không có route nào ở server nhận cụm từ; trang đặt CSP `connect-src 'none'` nên trình duyệt chặn mọi kết nối ra ngoài, không ghi file, không dùng localStorage; đóng hoặc tải lại trang là mất sạch. Không dùng thư viện ngoài (BIP39 danh sách từ, BIP32, secp256k1, Keccak, RIPEMD-160 tự cài). Từ chối xprv/khoá riêng. Không dán cụm từ vào chat hay CI. Test: `node xpubtest.js`.
+
+## S Zoom worker (Zoom giữ phòng của Socin)
+Chạy `zoom-worker` của Socin ngay trên máy này, không cần `.env`. Nằm trong nhóm "Máy chủ".
+
+1. **Liên kết theo tài khoản Socin (khuyên dùng):** nếu S Creator đã kết nối Socin bằng khoá S Creator của **admin hệ thống**, mỗi lần bật worker S Hub tự hỏi Socin (`POST /api/integration/creator/zoom-worker`, cần Socin 0.154.0+) để lấy khoá worker hiện tại. Khoá này chỉ nằm trong bộ nhớ, không ghi xuống đĩa. Nếu admin tạo khoá worker mới, worker bị từ chối (401) và S Hub tự lấy lại khoá rồi khởi động lại (tối đa 1 lần mỗi 5 phút).
+2. **Dự phòng:** dán khoá worker (Socin → Cài đặt → 🎥 Zoom → Tạo khoá worker). Khoá lưu ở `~/TestHubWorkspace/zoom/settings.json` (mode 600) và không bao giờ trả về trình duyệt.
+3. **Cài / cập nhật worker:** S Hub tải riêng thư mục `zoom-worker/` của repo `social` (sparse clone; repo private dùng `githubToken` hoặc `gh auth login`, token đi qua biến môi trường của git, không nằm trong URL), chạy `npm install` và tải Chromium (hoặc điền đường dẫn Chrome có sẵn).
+4. **Bật / Tắt / Khởi động lại**, trạng thái (đang chờ phiên, đang giữ phòng, lỗi kết nối kèm cách sửa) và nhật ký trực tiếp (khoá luôn bị che). Tự bật lại khi worker dừng bất ngờ (tối đa 5 lần / 10 phút); tuỳ chọn tự bật khi mở S Hub. Tắt S Hub thì worker cũng tắt.
+
+Mỗi bot là một Chrome riêng (~400–700 MB RAM). Chỉ dùng cho họp của chính tài khoản Zoom doanh nghiệp. Test: `node zoomtest.js` (repo, npm và Socin đều giả).
