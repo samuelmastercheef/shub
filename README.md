@@ -53,11 +53,29 @@ Cập nhật trên Mac: `cd ~/shub && git pull && ./start.command`. Test: `node 
 Tạo content, ảnh, video từ concept theo bước: Concept → Ý tưởng → Kịch bản → Ảnh → Video → Lịch đăng. Claude cục bộ viết ý tưởng/kịch bản; giọng đọc dùng CIT Voice Studio (cổng 8001, tự quay về `say` của macOS nếu CIT tắt), ảnh dựng bằng Playwright (thẻ thương hiệu), tải lên hoặc server ảnh tương thích A1111; video ghép bằng ffmpeg (`brew install ffmpeg`). Lịch đăng đẩy bài nháp sang Socin qua khoá API, xem `docs/creator-socin.md`. Test: `node creatortest.js`.
 
 
-## S Xpub (nạp USDT BEP20 cho S Prime CopyTrade Pay)
+## S Xpub (nạp USDT BEP20/TRC20 cho S Prime CopyTrade Pay)
 
-Tạo cụm 12/24 từ hoặc nhập cụm có sẵn, tính **xpub** (đường dẫn `m/44'/60'/0'/0`, 111 ký tự) và 3 địa chỉ nạp mẫu `#0–#2` để đối chiếu với Admin › Ví. Kết quả khớp tool `tools/gen-xpub` của repo `sprime-xauusd-server`. Nằm trong nhóm "Dựng & kiểm thử", có nút tắt ở bước "Dựng app" trang chủ.
+Tạo cụm 12/24 từ hoặc nhập cụm có sẵn, tính **xpub** và địa chỉ nạp. Nằm trong nhóm "Dựng & kiểm thử", có nút tắt ở bước "Dựng app" trang chủ.
 
-An toàn: mọi phép tính chạy **trong trang web trên máy bạn**, không có route nào ở server nhận cụm từ; trang đặt CSP `connect-src 'none'` nên trình duyệt chặn mọi kết nối ra ngoài, không ghi file, không dùng localStorage; đóng hoặc tải lại trang là mất sạch. Không dùng thư viện ngoài (BIP39 danh sách từ, BIP32, secp256k1, Keccak, RIPEMD-160 tự cài). Từ chối xprv/khoá riêng. Không dán cụm từ vào chat hay CI. Test: `node xpubtest.js`.
+- **Mạng**: BEP20/ERC20 (EVM, `m/44'/60'/0'/0`, khớp tool `tools/gen-xpub` của repo `sprime-xauusd-server`) hoặc TRC20 (Tron, `m/44'/195'/0'/0`, địa chỉ `T…`).
+- **Passphrase** (từ thứ 13/25) tuỳ chọn; có cảnh báo vì xpub sẽ khác hẳn.
+- **Địa chỉ thứ i**: chọn vị trí bắt đầu và số lượng (1–1000), đối chiếu một địa chỉ bất kỳ đang thấy trên Admin.
+- **Tra từ xpub**: dán xpub (không cần cụm từ) để xem địa chỉ nạp thứ i, EVM hoặc Tron.
+- **QR, in, xuất file**: QR cho xpub và từng địa chỉ (tự cài, không thư viện), in giấy (tuỳ chọn in kèm cụm từ để sao lưu, passphrase không bao giờ in), tải CSV/TXT chỉ chứa xpub và địa chỉ.
+
+An toàn: mọi phép tính chạy **trong trang web trên máy bạn**, không có route nào ở server nhận cụm từ; trang đặt CSP `connect-src 'none'` nên trình duyệt chặn mọi kết nối ra ngoài, không dùng localStorage; đóng hoặc tải lại trang là mất sạch. Không dùng thư viện ngoài (BIP39, BIP32, secp256k1, Keccak, RIPEMD-160, QR tự cài). Từ chối xprv/khoá riêng. Không dán cụm từ vào chat hay CI.
+
+### Gom tiền BEP20 (`/sweep.html`, trang riêng, cần mạng)
+
+Gom USDT BEP20 từ các địa chỉ nạp về ví chính. Tách hẳn khỏi trang offline: CSP chỉ cho kết nối tới 3 RPC BNB Smart Chain (`bsc-dataseed.bnbchain.org`, `bsc-dataseed1.binance.org`, `bsc-rpc.publicnode.com`).
+
+1. **Quét** chỉ cần xpub: đọc số dư USDT và BNB, lập kế hoạch (địa chỉ nào gom, địa chỉ nào cần nạp gas, ví phí cần bao nhiêu BNB).
+2. **Ký**: nhập cụm từ ví nạp (phải khớp xpub đã quét, không khớp là dừng) và ví phí (khoá riêng hoặc cụm từ, chỉ cần khi có địa chỉ thiếu gas).
+3. **Gửi**: phải tích xác nhận và gõ `GOM`. Nạp gas từ ví phí, chờ xác nhận, rồi chuyển toàn bộ USDT của từng địa chỉ về ví chính, chờ từng giao dịch xác nhận. Có nút dừng. Khoá bị xoá khỏi trang sau khi gửi.
+
+Ký giao dịch tự cài (EIP-155 legacy, RFC 6979, low-s), đã đối chiếu byte-by-byte với ethers v6. Thứ duy nhất rời máy là địa chỉ ví và giao dịch đã ký. Chưa hỗ trợ gom TRC20.
+
+Test: `node xpubtest.js` (cần `playwright` cho phần giao diện; cài thêm `jsqr` để kiểm tra giải mã QR).
 
 ## S Zoom worker (Zoom giữ phòng của Socin)
 Chạy `zoom-worker` của Socin ngay trên máy này, không cần `.env`. Nằm trong nhóm "Máy chủ".

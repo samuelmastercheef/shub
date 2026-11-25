@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Xpub · Gom tiền BEP20</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src https://bsc-dataseed.bnbchain.org https://bsc-dataseed1.binance.org https://bsc-rpc.publicnode.com; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 -apple-system,'Be Vietnam Pro',sans-serif;padding:18px 24px;max-width:980px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+textarea,input,select{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit;width:100%}
+textarea{min-height:64px;resize:vertical;font-family:ui-monospace,Menlo,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.mut{color:var(--mut)}.err{color:var(--bad)}.ok{color:var(--ok)}[hidden]{display:none!important}
+.warn{border:1px solid var(--warn);border-radius:8px;padding:10px 12px}.bad{border:1px solid var(--bad);border-radius:8px;padding:10px 12px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px 12px;margin:10px 0}.opts label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mut)}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--line);font-size:13px;word-break:break-all}th{color:var(--mut);font-size:12px}td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.log{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--logbg);color:var(--logtx);border-radius:8px;padding:10px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-all}.log a{color:var(--sun)}
+button:disabled{opacity:.45;cursor:not-allowed}
+</style></head><body>
+<div class="row" style="margin-top:0"><a href="/xpub.html">← S Xpub</a></div>
+<div class="card bad"><b>Trang này dùng mạng.</b> Nó đọc số dư và gửi giao dịch lên BNB Smart Chain (chỉ tới các máy chủ RPC trong danh sách, trình duyệt chặn mọi nơi khác). Cụm từ và khoá riêng chỉ nằm trong trang này: không gửi cho S Hub, không ghi file, không lưu; thứ duy nhất rời máy là địa chỉ ví (để đọc số dư) và giao dịch <b>đã ký</b>. Giao dịch gửi đi là <b>không hoàn tác được</b>. Hãy thử với số tiền nhỏ trước.</div>
+
+<div class="card"><h2>1. Cài đặt</h2>
+ <div class="opts">
+  <label>Máy chủ RPC (BNB Smart Chain)<select id="rpc"><option>https://bsc-dataseed.bnbchain.org</option><option>https://bsc-dataseed1.binance.org</option><option>https://bsc-rpc.publicnode.com</option></select></label>
+  <label>Token<input value="USDT BEP20 · 0x55d398326f99059fF775485246999027B3197955" disabled></label>
+  <label>Chỉ gom địa chỉ có từ (USDT)<input id="min" type="number" min="0" step="any" value="1"></label>
+  <label>Gas limit mỗi lệnh chuyển USDT<input id="gl" type="number" min="40000" value="100000"></label>
+ </div>
+ <label class="mut" style="font-size:12.5px">Ví chính nhận USDT (địa chỉ 0x…)</label>
+ <input id="main" placeholder="0x…" autocomplete="off" spellcheck="false">
+</div>
+
+<div class="card"><h2>2. Quét số dư (chỉ cần xpub)</h2>
+ <input id="xpub" placeholder="xpub6… (xpub BEP20 đang cài trên Admin)" autocomplete="off" spellcheck="false">
+ <div class="opts">
+  <label>Bắt đầu từ địa chỉ thứ<input id="start" type="number" min="0" value="0"></label>
+  <label>Số địa chỉ quét (1–500)<input id="count" type="number" min="1" max="500" value="20"></label>
+ </div>
+ <div class="row"><button id="scan">Quét số dư</button><span id="sst" class="mut"></span></div>
+ <table id="tb" hidden><thead><tr><th>#</th><th>Địa chỉ nạp</th><th>USDT</th><th>BNB</th><th>Kế hoạch</th></tr></thead><tbody id="rows"></tbody></table>
+ <div id="plan" class="warn" style="margin-top:10px" hidden></div>
+</div>
+
+<div class="card" id="signc" hidden><h2>3. Ký và gửi</h2>
+ <label class="mut" style="font-size:12.5px">Cụm từ của ví nạp (phải khớp xpub đã quét)</label>
+ <textarea id="m" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="từ1 từ2 … (BIP39)"></textarea>
+ <div class="opts"><label>Passphrase (nếu có)<input id="pp" type="password" autocomplete="off"></label></div>
+ <label class="mut" style="font-size:12.5px">Ví phí trả BNB gas: khoá riêng 64 ký tự hex, hoặc cụm từ (dùng địa chỉ m/44'/60'/0'/0/0). Chỉ cần khi có địa chỉ thiếu BNB.</label>
+ <textarea id="fee" autocomplete="off" autocapitalize="off" spellcheck="false" style="min-height:44px" placeholder="0x… hoặc cụm từ ví phí"></textarea>
+ <div class="row"><button class="ghost" id="check">Kiểm tra khoá</button><span id="kst" class="mut"></span></div>
+ <div id="confirmw" hidden>
+  <div id="summary" class="warn"></div>
+  <label class="row" style="font-size:13px"><input type="checkbox" id="ack" style="width:auto"> Tôi đã kiểm tra địa chỉ ví chính và hiểu giao dịch không hoàn tác được.</label>
+  <div class="row"><input id="word" placeholder='Gõ GOM để mở nút gửi' style="max-width:220px"><button class="cta" id="send" disabled>Ký và gửi</button><button class="ghost" id="stop" hidden>Dừng sau bước hiện tại</button></div>
+ </div>
+ <div class="log" id="log" hidden></div>
+ <div class="row"><button class="ghost" id="clr">Xoá sạch khoá khỏi trang</button></div>
+</div>
+<script src="/xpub-words.js"></script><script src="/xpub-core.js"></script><script src="/evm-tx.js"></script><script src="/sweep.js"></script>
+</body></html>

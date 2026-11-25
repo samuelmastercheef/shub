@@ -1,4 +1,4 @@
-// S Xpub: tính xpub (m/44'/60'/0'/0) và địa chỉ nạp BEP20/EVM ngay trong trình duyệt. Không phụ thuộc thư viện, không gọi mạng.
+// S Xpub: tính xpub và địa chỉ nạp BEP20/EVM hoặc TRC20 (Tron) ngay trong trình duyệt. Không phụ thuộc thư viện, không gọi mạng.
 // Chạy được cả trong Node (để đối chiếu với @scure/bip32).
 (function (g) {
   'use strict';
@@ -106,15 +106,84 @@
   const eip55 = (h) => { const lo = h.toLowerCase(), hh = hex(keccak256(te.encode(lo))); return '0x' + [...lo].map((ch, i) => (parseInt(hh[i], 16) >= 8 ? ch.toUpperCase() : ch)).join(''); };
   const addrOf = (pt) => eip55(hex(keccak256(pubU(pt)).slice(-20)));
 
-  // m/44'/60'/0'/0 -> xpub + vài địa chỉ mẫu m/44'/60'/0'/0/i
-  async function deriveAccount(mnemonic, { count = 3, passphrase = '' } = {}) {
-    const seed = await mnemonicToSeed(mnemonic, passphrase); let n = await master(seed); const H = 0x80000000;
-    for (const i of [44 + H, 60 + H, 0 + H]) n = await child(n, i);
+  // ---- Mạng hỗ trợ ----
+  // evm: BEP20 (BSC), ERC20, Polygon… dùng chung địa chỉ m/44'/60'. tron: TRC20, m/44'/195', địa chỉ T… (base58, tiền tố 0x41).
+  const COINS = { evm: { coin: 60, name: 'BEP20 / ERC20 (EVM)' }, tron: { coin: 195, name: 'TRC20 (Tron)' } };
+  const coinOf = (net) => { const c = COINS[net || 'evm']; if (!c) throw new Error('mạng không hỗ trợ: ' + net); return c; };
+  const tronAddr = async (pt) => b58check(cat(Uint8Array.of(0x41), keccak256(pubU(pt)).slice(-20)));
+  const addrFor = async (net, pt) => (net === 'tron' ? tronAddr(pt) : addrOf(pt));
+  const MAXN = 1000, H = 0x80000000;
+  const range = (start, count) => {
+    start = Number(start) || 0; count = count == null ? 3 : Number(count);
+    if (!Number.isInteger(start) || start < 0 || start >= H) throw new Error('vị trí bắt đầu phải là số nguyên từ 0');
+    if (!Number.isInteger(count) || count < 1 || count > MAXN) throw new Error('số địa chỉ phải từ 1 đến ' + MAXN);
+    if (start + count > H) throw new Error('vượt quá chỉ số tối đa'); return [start, count];
+  };
+
+  // m/44'/coin'/0'/0 -> xpub + địa chỉ m/44'/coin'/0'/0/i (i = start … start+count-1)
+  async function deriveAccount(mnemonic, { count = 3, start = 0, passphrase = '', network = 'evm', withKeys = false } = {}) {
+    const { coin } = coinOf(network); [start, count] = range(start, count);
+    const seed = await mnemonicToSeed(mnemonic, passphrase); let n = await master(seed);
+    for (const i of [44 + H, coin + H, 0 + H]) n = await child(n, i);
     const parentPub = pubC(mulG(n.k)); const ext = await child(n, 0), extPub = pubC(mulG(ext.k)), fp = ripemd160(await sha256(parentPub)).slice(0, 4);
     const xpub = await b58check(cat(unhex('0488b21e'), Uint8Array.of(4), fp, ser32(0), ext.c, extPub));
-    const addrs = []; for (let i = 0; i < count; i++) { const c = await child(ext, i); addrs.push({ index: i, address: addrOf(mulG(c.k)) }); }
-    return { xpub, addresses: addrs };
+    const addrs = [];
+    for (let i = start; i < start + count; i++) { const c = await child(ext, i), a = { index: i, address: await addrFor(network, mulG(c.k)) }; if (withKeys) a.key = c.k; addrs.push(a); }
+    return { xpub, network, path: `m/44'/${coin}'/0'/0`, addresses: addrs };
   }
-  const api = { generateMnemonic, validateMnemonic, deriveAccount, mnemonicToSeed, keccak256, ripemd160, hex };
+
+  // ---- Suy địa chỉ chỉ từ xpub (không cần cụm từ, an toàn để tra cứu) ----
+  const b58decode = async (s) => {
+    s = String(s).trim(); let n = 0n; for (const ch of s) { const v = B58.indexOf(ch); if (v < 0) throw new Error('ký tự không hợp lệ trong xpub'); n = n * 58n + BigInt(v); }
+    let h = n.toString(16); if (h.length % 2) h = '0' + h; let zeros = 0; for (const ch of s) { if (ch === '1') zeros++; else break; }
+    const d = cat(new Uint8Array(zeros), n ? unhex(h) : new Uint8Array(0)); if (d.length < 5) throw new Error('xpub quá ngắn');
+    const body = d.slice(0, -4), chk = (await sha256(await sha256(body))).slice(0, 4);
+    if (hex(chk) !== hex(d.slice(-4))) throw new Error('xpub sai checksum (gõ nhầm hoặc thiếu ký tự)'); return body;
+  };
+  const liftX = (b) => { // khôi phục điểm từ khoá công khai nén 33 byte
+    if (b.length !== 33 || (b[0] !== 2 && b[0] !== 3)) throw new Error('khoá công khai không hợp lệ');
+    const x = big(b.slice(1)); if (x >= P) throw new Error('khoá công khai không hợp lệ');
+    const y2 = mod(x * x * x + 7n); let y = pow(y2, (P + 1n) / 4n, P); if ((y * y) % P !== y2) throw new Error('điểm không nằm trên đường cong');
+    if ((y & 1n) !== BigInt(b[0] & 1)) y = P - y; return [x, y];
+  };
+  const toAff = (j) => { if (!j) throw new Error('điểm vô cực'); const zi = inv(j[2]), zi2 = (zi * zi) % P; return [(j[0] * zi2) % P, (j[1] * zi2 * zi) % P]; };
+  async function parseXpub(xpub) {
+    if (/^[xyzt]prv/i.test(String(xpub).trim())) throw new Error('đây là khoá riêng (xprv), không nhập vào đây');
+    const b = await b58decode(xpub); if (b.length !== 78) throw new Error('xpub phải dài 78 byte sau giải mã');
+    if (hex(b.slice(0, 4)) !== '0488b21e') throw new Error('chỉ nhận xpub chuẩn (bắt đầu bằng xpub)');
+    return { depth: b[4], c: b.slice(13, 45), pt: liftX(b.slice(45)) };
+  }
+  async function pubChild(node, i) {
+    if (i >= H) throw new Error('xpub không suy được chỉ số hardened');
+    const I = await hmac512(node.c, cat(pubC(node.pt), ser32(i))), il = big(I.slice(0, 32)); if (il >= N) throw new Error('chỉ số không hợp lệ');
+    const g = mulG(il); return { c: I.slice(32), pt: toAff(jadd([g[0], g[1], 1n], [node.pt[0], node.pt[1], 1n])) };
+  }
+  async function addressesFromXpub(xpub, { start = 0, count = 3, network = 'evm' } = {}) {
+    coinOf(network); [start, count] = range(start, count); const node = await parseXpub(xpub), out = [];
+    for (let i = start; i < start + count; i++) out.push({ index: i, address: await addrFor(network, (await pubChild(node, i)).pt) });
+    return out;
+  }
+
+  // ---- Ký ECDSA secp256k1 (RFC 6979, low-s) cho trang gom tiền ----
+  const hmac256 = async (key, data) => { const k = await C.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return new Uint8Array(await C.subtle.sign('HMAC', k, data)); };
+  async function signHash(hash32, d) {
+    if (!(d > 0n && d < N)) throw new Error('khoá riêng không hợp lệ');
+    const x = ser256(d), h1 = ser256(big(hash32) % N); let V = new Uint8Array(32).fill(1), K = new Uint8Array(32);
+    K = await hmac256(K, cat(V, Uint8Array.of(0), x, h1)); V = await hmac256(K, V); K = await hmac256(K, cat(V, Uint8Array.of(1), x, h1)); V = await hmac256(K, V);
+    const z = big(hash32);
+    for (;;) {
+      V = await hmac256(K, V); const k = big(V);
+      if (k > 0n && k < N) {
+        const R = mulG(k), r = R[0] % N;
+        if (r !== 0n) { let s = (pow(k, N - 2n, N) * ((z + r * d) % N)) % N; let rec = Number(R[1] & 1n) | (R[0] >= N ? 2 : 0); if (s > N / 2n) { s = N - s; rec ^= 1; } if (s !== 0n) return { r, s, rec }; }
+      }
+      K = await hmac256(K, cat(V, Uint8Array.of(0))); V = await hmac256(K, V);
+    }
+  }
+  const keyFromHex = (h) => { const m = String(h).trim().replace(/^0x/i, ''); if (!/^[0-9a-f]{64}$/i.test(m)) throw new Error('khoá riêng phải là 64 ký tự hex'); const d = BigInt('0x' + m); if (!(d > 0n && d < N)) throw new Error('khoá riêng không hợp lệ'); return d; };
+  const evmAddressOfKey = (d) => addrOf(mulG(d));
+
+  const checksumAddress = (a) => { if (!/^0x[0-9a-fA-F]{40}$/.test(String(a))) throw new Error('địa chỉ EVM không hợp lệ'); const c = eip55(a.slice(2)); if (a !== a.toLowerCase() && a.slice(2) !== a.slice(2).toUpperCase() && a !== c) throw new Error('địa chỉ sai checksum (gõ nhầm?)'); return c; };
+  const api = { checksumAddress, generateMnemonic, validateMnemonic, deriveAccount, addressesFromXpub, parseXpub, mnemonicToSeed, keccak256, ripemd160, hex, unhex, signHash, keyFromHex, evmAddressOfKey, COINS };
   g.SXpub = api; if (typeof module !== 'undefined') module.exports = api;
 })(typeof globalThis !== 'undefined' ? globalThis : window);
