@@ -20,7 +20,7 @@ const DEFAULT_APPS = [
   { id: 'claude', name: 'S Claude', icon: '✨', type: 'internal', path: '/claude.html', desc: 'Workflow agent, dọn cache, plugin, MCP, artifacts, dự án' },
   { id: 'creator', name: 'S Creator', icon: '🎬', type: 'internal', path: '/creator.html', desc: 'Tạo content, ảnh, video từ concept và đăng theo lịch qua Socin' },
   { id: 'zoom', name: 'S Zoom worker', icon: '🎥', type: 'internal', path: '/zoom.html', desc: 'Chạy zoom-worker cho Zoom giữ phòng của Socin ngay trên máy này' },
-  { id: 'xpub', name: 'S Xpub', icon: '🔑', type: 'internal', path: '/xpub.html', desc: 'Tạo cụm 12 từ và xpub nạp USDT BEP20 cho S Prime (chạy offline trên máy)' },
+  { id: 'xpub', name: 'S Xpub', icon: '🔑', type: 'internal', path: '/xpub.html', desc: 'Tạo cụm 12 từ, xpub và địa chỉ nạp USDT BEP20/TRC20 cho S Prime (offline), QR, in, gom tiền BEP20' },
   { id: 'chat', name: 'S Chat', icon: '💬', type: 'launch', command: 'open -a "S Chat"', desc: 'Chat Telegram đa tài khoản' },
   { id: 'vpn', name: 'S VPN', icon: '🔒', type: 'launch', command: 'open -a "S VPN"', desc: 'VPN riêng WireGuard' },
   { id: 'clean', name: 'S Clean', icon: '🧹', type: 'launch', command: 'open -a "S Clean"', desc: 'Dọn dẹp MacBook' },

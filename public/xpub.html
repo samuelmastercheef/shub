@@ -12,6 +12,11 @@ textarea{min-height:76px;resize:vertical;font-family:ui-monospace,Menlo,monospac
 .box{font-family:ui-monospace,Menlo,monospace;word-break:break-all;background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px}
 .warn{border:1px solid var(--warn);border-radius:8px;padding:10px 12px;background:transparent}
 table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;border-bottom:1px solid var(--line);font-size:13px;word-break:break-all}th{color:var(--mut);font-size:12px}
+select{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 12px;margin:10px 0}.opts label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mut)}
+.qr{background:#fff;display:inline-block;padding:6px;border-radius:8px;margin-top:8px}.qr svg{display:block;width:220px;height:220px}button.s{padding:3px 8px;font-size:12px}
+#print{display:none}
+@media print{body{background:#fff;color:#000;padding:0;max-width:none}body>*:not(#print){display:none!important}#print{display:block}#print .box{background:#fff;border:1px solid #999;color:#000}#print td,#print th{border-bottom:1px solid #ccc;color:#000}#print .qr svg{width:200px;height:200px}#print .seed span{background:#fff;border:1px solid #999;color:#000}}
 .seed{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}.seed span{background:var(--in);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-family:ui-monospace,Menlo,monospace}.seed i{color:var(--mut);font-style:normal;margin-right:6px;font-size:11px}
 </style></head><body>
 <div class="card warn"><b>Chạy hoàn toàn trong trang này, trên máy bạn.</b> Cụm từ không gửi cho S Hub, không gọi mạng (trình duyệt bị chặn mọi kết nối của trang), không ghi file, không lưu vào lịch sử. Đóng hoặc tải lại trang là mất sạch. Nên ngắt mạng khi dùng. Không dán cụm từ hoặc khoá riêng vào chat, CI hay công cụ build.</div>
@@ -19,19 +24,48 @@ table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:6px;bord
 <div class="card"><h2>1. Nguồn cụm từ</h2>
  <div class="row"><button class="cta" id="gen">Tạo ví mới (12 từ)</button><button class="ghost" id="gen24">Tạo 24 từ</button><span class="mut">hoặc nhập cụm từ có sẵn:</span></div>
  <textarea id="m" placeholder="từ1 từ2 … từ12 (tiếng Anh, BIP39)" autocomplete="off" autocapitalize="off" spellcheck="false"></textarea>
+ <div class="opts">
+  <label>Mạng<select id="net"><option value="evm">USDT BEP20 / ERC20 (EVM, m/44'/60')</option><option value="tron">USDT TRC20 (Tron, m/44'/195')</option></select></label>
+  <label>Bắt đầu từ địa chỉ thứ<input id="start" type="number" min="0" value="0"></label>
+  <label>Số địa chỉ (1–1000)<input id="count" type="number" min="1" max="1000" value="3"></label>
+  <label>Passphrase (từ thứ 13/25, không bắt buộc)<span class="row" style="margin:0;flex-wrap:nowrap"><input id="pp" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="để trống nếu không dùng"><button class="ghost s" id="ppv" type="button" title="Hiện/ẩn">👁</button></span></label>
+ </div>
+ <div id="ppw" class="warn mut" style="font-size:12.5px;margin-bottom:6px" hidden>Đang dùng passphrase: xpub và địa chỉ sẽ <b>khác hẳn</b> khi không có passphrase. Quên passphrase là mất tiền, cụm từ thôi không đủ. Passphrase không bao giờ được in hay xuất ra file.</div>
  <div class="row"><button id="go">Tính xpub</button><button class="ghost" id="clr">Xoá sạch</button><span id="st" class="mut"></span></div>
  <div id="newseed" hidden><div class="warn" style="margin-bottom:8px"><b>Cụm từ vừa tạo.</b> Viết ra giấy và cất kỹ, không chụp màn hình, không gửi qua chat. Ai có cụm này là lấy được toàn bộ tiền nạp.</div><div class="seed" id="seed"></div></div>
 </div>
 
 <div class="card" id="out" hidden><h2>2. Kết quả</h2>
- <div class="mut">XPUB (đường dẫn m/44'/60'/0'/0), dán vào Admin › Ví › Cài đặt &amp; cổng › xpub:</div>
+ <div class="mut">XPUB <span id="pathl"></span><span id="adminl">, dán vào Admin › Ví › Cài đặt &amp; cổng › xpub</span>:</div>
  <div class="box" id="xp"></div>
- <div class="row"><button id="cp">Sao chép xpub</button><span id="len" class="mut"></span></div>
- <div class="mut" style="margin-top:8px">Địa chỉ nạp mẫu, đối chiếu với trang Admin (#0–#2). Địa chỉ nạp thứ i của thành viên = m/44'/60'/0'/0/i:</div>
- <table><thead><tr><th>#</th><th>Địa chỉ</th></tr></thead><tbody id="ad"></tbody></table>
- <div class="row" style="margin-top:12px"><input id="cmp" placeholder="Dán địa chỉ #0 đang thấy trên Admin để đối chiếu" style="flex:1"><span id="cmpr"></span></div>
- <p class="mut" style="font-size:12.5px">Ví chính (nhận USDT) và Ví phí (BNB gas) là hai ví riêng bạn nhập ở tab "Xpub &amp; gom tiền". Ví phí nên là ví khác, tránh trùng địa chỉ nạp #0. Gom tiền về ví chính bằng cách import cụm từ vào MetaMask/Trust Wallet hoặc ký offline bằng <code>tools/gen-xpub/sweep.mjs</code> của repo server.</p>
+ <div class="row"><button id="cp">Sao chép xpub</button><button class="ghost" id="qrb">Mã QR xpub</button><button class="ghost" id="csv">Tải CSV địa chỉ</button><button class="ghost" id="txt">Tải TXT</button><button class="ghost" id="prt">In</button><span id="len" class="mut"></span></div>
+ <div id="tronn" class="mut" style="font-size:12.5px" hidden>Admin S Prime hiện nhận xpub BEP20. xpub TRC20 dùng cho cổng nạp TRC20 hoặc để đối chiếu địa chỉ Tron (định dạng T…).</div>
+ <div id="qrw" hidden><div class="qr" id="qr"></div><div class="mut" id="qrl" style="font-size:12px"></div></div>
+ <div class="mut" style="margin-top:8px">Địa chỉ nạp, đối chiếu với trang Admin. Địa chỉ nạp thứ i của thành viên = <span id="pathi"></span>:</div>
+ <table><thead><tr><th>#</th><th>Địa chỉ</th><th></th></tr></thead><tbody id="ad"></tbody></table>
+ <div class="row" style="margin-top:12px"><input id="cmp" placeholder="Dán một địa chỉ đang thấy trên Admin để đối chiếu" style="flex:1"><span id="cmpr"></span></div>
+ <label class="row mut" style="font-size:12.5px;margin:4px 0"><input type="checkbox" id="pseed" style="width:auto"> Khi in, in kèm cụm từ để cất giấy (chỉ in ra máy in tin cậy, không in ra PDF lưu trên máy)</label>
+ <p class="mut" style="font-size:12.5px">Ví chính (nhận USDT) và Ví phí (BNB gas) là hai ví riêng bạn nhập ở tab "Xpub &amp; gom tiền". Ví phí nên là ví khác, tránh trùng địa chỉ nạp #0. Gom tiền về ví chính: dùng trang <a href="/sweep.html">Gom tiền BEP20</a> (trang riêng, cần mạng), import cụm từ vào MetaMask/Trust Wallet, hoặc ký offline bằng <code>tools/gen-xpub/sweep.mjs</code> của repo server.</p>
 </div>
+
+<div class="card"><h2>3. Tra địa chỉ từ xpub (không cần cụm từ)</h2>
+ <p class="mut" style="margin-top:0">Dán xpub đang cài trên Admin để xem địa chỉ nạp thứ i bất kỳ. xpub là khoá công khai, không tiêu được tiền.</p>
+ <input id="xin" placeholder="xpub6…" autocomplete="off" autocapitalize="off" spellcheck="false">
+ <div class="opts">
+  <label>Mạng<select id="xnet"><option value="evm">BEP20 / ERC20 (EVM)</option><option value="tron">TRC20 (Tron)</option></select></label>
+  <label>Bắt đầu từ địa chỉ thứ<input id="xstart" type="number" min="0" value="0"></label>
+  <label>Số địa chỉ (1–1000)<input id="xcount" type="number" min="1" max="1000" value="10"></label>
+ </div>
+ <div class="row"><button id="xgo">Tra địa chỉ</button><button class="ghost" id="xcsv" hidden>Tải CSV</button><span id="xst" class="mut"></span></div>
+ <table id="xtb" hidden><thead><tr><th>#</th><th>Địa chỉ</th><th></th></tr></thead><tbody id="xad"></tbody></table>
+ <div id="xqrw" hidden><div class="qr" id="xqr"></div><div class="mut" id="xqrl" style="font-size:12px"></div></div>
+</div>
+
+<div class="card"><h2>4. Gom tiền về ví chính</h2>
+ <p class="mut" style="margin-top:0">Trang riêng, <b>cần mạng</b> để đọc số dư và gửi giao dịch lên BNB Smart Chain. Quét số dư chỉ cần xpub; ký và gửi mới cần cụm từ.</p>
+ <a href="/sweep.html" style="display:inline-block;text-decoration:none;padding:8px 14px;border-radius:8px;background:var(--sun);color:#2A1A00;font-weight:700">Mở trang Gom tiền BEP20</a>
+</div>
+<div id="print"></div>
 <div id="msg" hidden></div>
-<script src="/xpub-words.js"></script><script src="/xpub-core.js"></script><script src="/xpub.js"></script>
+<script src="/xpub-words.js"></script><script src="/xpub-core.js"></script><script src="/xpub-qr.js"></script><script src="/xpub.js"></script>
 </body></html>
