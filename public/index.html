@@ -57,8 +57,8 @@ h2.sec:first-child{margin-top:0}
 <script>
 const $=id=>document.getElementById(id);let apps=[],cur='home',reports=[],servers=[];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const GROUP={build:'n_dev',xpub:'n_dev',test:'n_dev',vps:'n_srv',github:'n_src',creator:'n_src',files:'n_src',claude:'n_src'};
-const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ và xpub nạp USDT BEP20, chạy offline',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động'};
+const GROUP={build:'n_dev',xpub:'n_dev',test:'n_dev',vps:'n_srv',zoom:'n_srv',github:'n_src',creator:'n_src',files:'n_src',claude:'n_src'};
+const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ và xpub nạp USDT BEP20, chạy offline',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động',zoom:'Chạy zoom-worker cho Zoom giữ phòng của Socin'};
 const A=id=>apps.find(a=>a.id===id)||{};
 const dotCls=a=>a.online===true?'on':a.online===false?'off':'';
 async function load(){
