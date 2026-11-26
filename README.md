@@ -96,3 +96,10 @@ Chạy `zoom-worker` của Socin ngay trên máy này, không cần `.env`. Nằ
 4. **Bật / Tắt / Khởi động lại**, trạng thái (đang chờ phiên, đang giữ phòng, lỗi kết nối kèm cách sửa) và nhật ký trực tiếp (khoá luôn bị che). Tự bật lại khi worker dừng bất ngờ (tối đa 5 lần / 10 phút); tuỳ chọn tự bật khi mở S Hub. Tắt S Hub thì worker cũng tắt.
 
 Mỗi bot là một Chrome riêng (~400–700 MB RAM). Chỉ dùng cho họp của chính tài khoản Zoom doanh nghiệp. Test: `node zoomtest.js` (repo, npm và Socin đều giả).
+
+## S Remote (điều khiển máy Windows từ Mac này)
+Nằm trong nhóm máy chủ, cạnh S Zoom worker. Dùng chung kết nối Socin của **S Creator** (khoá của admin hoặc chủ doanh nghiệp), cần Socin 0.161.0 trở lên.
+- Danh sách máy Windows giống menu **Điều khiển từ xa** trong admin Socin, kèm trạng thái. Bấm **Kết nối** là mở RustDesk vào thẳng máy (qua Tailscale hoặc ID RustDesk).
+- **Thêm máy Windows** → nhận **bộ cài một chạm** (file `.cmd`, lưu sẵn vào Kho file `downloads/remote/`). Chép sang máy Windows, bấm đúp, bấm Yes, đặt mật khẩu trong cửa sổ là xong.
+- Mục **Mac này**: kiểm tra và cài RustDesk, Tailscale bằng Homebrew.
+- Mật khẩu RustDesk không đi qua S Hub hay Socin. Test: `node remotetest.js`.
