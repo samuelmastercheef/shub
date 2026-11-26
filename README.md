@@ -18,7 +18,10 @@ Một giao diện tổng cho các tool: S Build Hub, S Test Hub, S VPS và các 
   - 📦 Khác: công cụ tự thêm trong config.json chưa thuộc nhóm nào (chỉ hiện khi có)
   Sửa nhóm ở mảng `CATS` đầu phần script của `public/index.html`.
 - Ô **Tìm công cụ** (phím `/` hoặc ⌘K) tìm theo tên, mô tả, danh mục, gõ không dấu cũng được. Mục **Dùng gần đây** nhớ 4 công cụ mở gần nhất (lưu trong trình duyệt).
-- Tổng quan: thẻ các danh mục, quy trình Kiểm thử → Dựng app → Triển khai, trạng thái nhanh, kiểm tra gần đây.
+- Tổng quan gồm 3 phần:
+  - **Lối tắt nhanh**: mọi tính năng xếp theo danh mục, bấm là vào thẳng (ví dụ "Kiểm thử repo", "Điều khiển Windows", "Tạo xpub").
+  - **Kết nối & cấu hình chung**: đăng nhập **Socin** ngay tại đây (địa chỉ + khoá S Creator, tạo ở Socin → menu Khoá S Creator), dùng chung cho S Creator, S Zoom worker, S Remote; trạng thái GitHub; công cụ cần có trên máy (Node, git, gh, Playwright, ffmpeg, Claude) và thư mục làm việc; dịch vụ nền (Zoom worker, Build Hub, số server VPS).
+  - **Tổng quan**: số lần kiểm thử, lỗi, server VPS, tài khoản MXH trên Socin, kiểm thử gần đây.
 - S Build Hub: tự dò app đang chạy trên máy theo tiêu đề trang "Build Hub" và nhúng vào đây. Nếu không dò được, điền `url` và `startCommand` trong config.json.
 - S Test Hub: tích hợp sẵn (lint, build, test, bảo mật, giao diện).
 - App khác: bấm là mở app trên máy bằng lệnh `command` trong config.json (sửa tên app cho đúng).
