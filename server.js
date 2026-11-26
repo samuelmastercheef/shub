@@ -21,6 +21,7 @@ const DEFAULT_APPS = [
   { id: 'creator', name: 'S Creator', icon: '🎬', type: 'internal', path: '/creator.html', desc: 'Tạo content, ảnh, video từ concept và đăng theo lịch qua Socin' },
   { id: 'zoom', name: 'S Zoom worker', icon: '🎥', type: 'internal', path: '/zoom.html', desc: 'Chạy zoom-worker cho Zoom giữ phòng của Socin ngay trên máy này' },
   { id: 'remote', name: 'S Remote', icon: '🖱', type: 'internal', path: '/remote.html', desc: 'Điều khiển máy Windows của bạn từ Mac này: bấm Kết nối là vào (RustDesk qua Tailscale)' },
+  { id: 'sgame', name: 'S Game', icon: '🎮', type: 'internal', path: '/sgame.html', desc: 'Kiểm tra máy đủ công cụ làm game, dựng nhân vật 3D, video 3D chibi vinyl chưa; thiếu thì bấm là cài' },
   { id: 'xpub', name: 'S Xpub', icon: '🔑', type: 'internal', path: '/xpub.html', desc: 'Tạo cụm 12 từ, xpub và địa chỉ nạp USDT BEP20/TRC20 cho S Prime (offline), QR, in, gom tiền BEP20' },
   { id: 'chat', name: 'S Chat', icon: '💬', type: 'launch', command: 'open -a "S Chat"', desc: 'Chat Telegram đa tài khoản' },
   { id: 'vpn', name: 'S VPN', icon: '🔒', type: 'launch', command: 'open -a "S VPN"', desc: 'VPN riêng WireGuard' },
@@ -29,7 +30,7 @@ const DEFAULT_APPS = [
 ];
 const APPS = Array.isArray(cfg.apps) && cfg.apps.length ? [...cfg.apps] : [...DEFAULT_APPS];
 if (!APPS.some((a) => a.id === 'vps')) APPS.splice(2, 0, DEFAULT_APPS.find((a) => a.id === 'vps'));
-for (const id of ['github', 'files', 'claude', 'creator', 'xpub', 'zoom', 'remote']) if (!APPS.some((a) => a.id === id)) { const i = APPS.findIndex((a) => a.id === 'vps'); APPS.splice(i >= 0 ? i + 1 : APPS.length, 0, DEFAULT_APPS.find((a) => a.id === id)); }
+for (const id of ['github', 'files', 'claude', 'creator', 'xpub', 'zoom', 'remote', 'sgame']) if (!APPS.some((a) => a.id === id)) { const i = APPS.findIndex((a) => a.id === 'vps'); APPS.splice(i >= 0 ? i + 1 : APPS.length, 0, DEFAULT_APPS.find((a) => a.id === id)); }
 const appById = (id) => APPS.find((a) => a.id === id);
 const WS = expand(cfg.workspace);
 const REPOS = path.join(WS, 'repos');
@@ -325,6 +326,8 @@ const claudeHandle = require('./claude')({ WS, json, body });
 const creatorHandle = require('./creator')({ WS, json, body });
 const zoomHandle = require('./zoom')({ WS, cfg, json, body });
 const remoteHandle = require('./remote')({ WS, json, body });
+const sgameHandle = require('./sgame')({ WS, cfg, json, body });
+const cotichHandle = require('./cotich')({ cfg, json });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -340,6 +343,8 @@ const server = http.createServer(async (req, res) => {
     if (await creatorHandle(req, res, u)) return;
     if (await zoomHandle(req, res, u)) return;
     if (await remoteHandle(req, res, u)) return;
+    if (await sgameHandle(req, res, u)) return;
+    if (await cotichHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!a.startCommand, ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });

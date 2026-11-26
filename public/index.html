@@ -119,13 +119,14 @@ const CATS=[
  {id:'release',icon:'🚀',name:'Dựng & kiểm thử',desc:'Kiểm thử repo và dựng app Mac, Windows, Android, iOS trước khi phát hành.',tools:['test','build']},
  {id:'server',icon:'🖥',name:'Máy chủ & thiết bị',desc:'Triển khai lên VPS, điều khiển máy Windows từ xa, chạy worker của Socin.',tools:['vps','remote','zoom']},
  {id:'code',icon:'🧠',name:'Mã nguồn & AI',desc:'Quản lý repo GitHub, workflow Claude và kho file tải về.',tools:['github','claude','files']},
+ {id:'game',icon:'🎮',name:'Game & 3D',desc:'Kiểm tra và cài công cụ làm game, dựng nhân vật 3D, làm video 3D chibi vinyl.',tools:['sgame','cotich']},
  {id:'content',icon:'🎬',name:'Nội dung',desc:'Tạo content, ảnh, video từ concept và đăng theo lịch qua Socin.',tools:['creator']},
  {id:'wallet',icon:'💰',name:'Ví & thanh toán',desc:'Tạo xpub, địa chỉ nạp USDT BEP20/TRC20 và gom tiền về ví chính.',tools:['xpub','sweep']},
  {id:'mac',icon:'💻',name:'Ứng dụng trên Mac',desc:'Mở nhanh các app Socin đã cài trên máy này.',tools:[]},
  {id:'other',icon:'📦',name:'Khác',desc:'Công cụ thêm trong config.json chưa thuộc danh mục nào.',tools:[]}];
 // Trang phụ không có trong /api/apps, chỉ hiện khi công cụ "cha" có mặt
-const PAGES={sweep:{id:'sweep',parent:'xpub',name:'Gom tiền BEP20',icon:'💸',type:'page',path:'/sweep.html',desc:'Gom USDT BEP20 từ các địa chỉ nạp về ví chính (trang riêng, cần mạng)'}};
-const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ, xpub nạp USDT BEP20/TRC20 (offline), QR, in, gom tiền',sweep:'Gom USDT BEP20 về ví chính, trang riêng cần mạng',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động',zoom:'Chạy zoom-worker cho Zoom giữ phòng của Socin',remote:'Điều khiển máy Windows của bạn từ Mac này'};
+const PAGES={cotich:{id:'cotich',parent:'sgame',name:'Đất cổ tích',icon:'🏯',type:'page',path:'/cotich.html',desc:'Kho tài nguyên dự án game cổ tích: tiến độ, nhân vật, game, kênh và content, video'},sweep:{id:'sweep',parent:'xpub',name:'Gom tiền BEP20',icon:'💸',type:'page',path:'/sweep.html',desc:'Gom USDT BEP20 từ các địa chỉ nạp về ví chính (trang riêng, cần mạng)'}};
+const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ, xpub nạp USDT BEP20/TRC20 (offline), QR, in, gom tiền',sweep:'Gom USDT BEP20 về ví chính, trang riêng cần mạng',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động',zoom:'Chạy zoom-worker cho Zoom giữ phòng của Socin',remote:'Điều khiển máy Windows của bạn từ Mac này',sgame:'Công cụ làm game, nhân vật 3D, video 3D chibi vinyl: tự kiểm tra, bấm là cài',cotich:'Tiến độ, nhân vật, game, kênh và content, video của dự án game cổ tích'};
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const A=id=>apps.find(a=>a.id===id)||(PAGES[id]&&apps.some(a=>a.id===PAGES[id].parent)?PAGES[id]:{});
 const catOf=id=>{const c=CATS.find(c=>c.tools.includes(id));if(c)return c.id;const a=A(id);return a.type==='launch'?'mac':'other'};
@@ -156,13 +157,13 @@ function stateOf(a){
  if(a.type==='launch')return'<i class="dot"></i>Mở app trên Mac';
  return a.online?'<i class="dot on"></i>Đang chạy':a.canStart?'<i class="dot"></i>Sẵn sàng khởi động':'<i class="dot off"></i>Chưa chạy'}
 // ---- Trang chủ: cấu hình chung + lối tắt nhanh + tổng quan ----
-let HS={cr:null,gh:null,env:null,zoom:null,acc:null,accErr:'',edit:false};
+let HS={cr:null,gh:null,env:null,zoom:null,sg:null,acc:null,accErr:'',edit:false};
 const SOCIN_DEFAULT='https://app.socin.org';
-const SHORT={test:'Kiểm thử repo',build:'Dựng app',vps:'Triển khai VPS',remote:'Điều khiển Windows',zoom:'Zoom giữ phòng',github:'Repo GitHub',claude:'Workflow Claude',creator:'Tạo video',xpub:'Tạo xpub',sweep:'Gom tiền'};
+const SHORT={test:'Kiểm thử repo',build:'Dựng app',vps:'Triển khai VPS',remote:'Điều khiển Windows',zoom:'Zoom giữ phòng',github:'Repo GitHub',claude:'Workflow Claude',creator:'Tạo video',xpub:'Tạo xpub',sweep:'Gom tiền',sgame:'Công cụ làm game',cotich:'Đất cổ tích'};
 const jget=u=>fetch(u).then(r=>r.json()).catch(()=>null);
 async function loadHome(){
- const [cr,gh,env,zoom]=await Promise.all([jget('/api/cr/settings'),jget('/api/gh/me'),jget('/api/env'),jget('/api/zoom/status')]);
- HS.cr=cr&&cr.settings;HS.gh=gh;HS.env=env;HS.zoom=zoom;
+ const [cr,gh,env,zoom,sg]=await Promise.all([jget('/api/cr/settings'),jget('/api/gh/me'),jget('/api/env'),jget('/api/zoom/status'),jget('/api/sgame/status')]);
+ HS.cr=cr&&cr.settings;HS.gh=gh;HS.env=env;HS.zoom=zoom;HS.sg=sg;
  if(HS.cr&&HS.cr.socin.hasToken&&HS.acc===null)await testSocin(true);
  if(cur==='home')home()}
 async function testSocin(quiet){
@@ -196,8 +197,12 @@ function macCard(){
  const e=HS.env||{},t=(HS.cr&&HS.cr.tools)||{};const it=(n,v)=>`<span class="tk ${v?'ok':''}">${v?'✓':'✕'} ${n}</span>`;
  return`<div class="cfg"><div class="ch"><span class="ce">💻</span><span><b>Máy này</b><span class="mut">Công cụ cần cho các tính năng</span></span></div>
  <div class="tks">${it('Node '+(e.node||''),!!e.node)}${it('git',e.git)}${it('gh',e.gh)}${it('Playwright',e.playwright)}${it('ffmpeg',t.ffmpeg)}${it('Claude',t.claude)}</div>
+ ${sgLine()}
  <div class="kv"><span>Thư mục làm việc</span><b class="path" title="${esc(e.workspace||'')}">${esc((e.workspace||'—').replace(/^\/Users\/[^/]+/,'~'))}</b></div>
  <div class="btns"><button class="ghost s" data-go="files">Mở Kho file</button></div></div>`}
+// S Game: tự kiểm tra công cụ làm game mỗi lần mở trang chủ
+function sgLine(){const s=HS.sg&&HS.sg.summary;if(!s)return'';const miss=s.missing.length;
+ return`<div class="kv"><span>🎮 Công cụ làm game</span><b>${miss?`<a class="lnk" data-go="sgame" title="${esc(s.missing.join(', '))}"><span class="pill bad">Thiếu ${miss}</span></a>`:`<span class="pill ok">Đủ ${s.ok}/${s.total}</span>`}</b></div>`}
 function svcCard(){
  const z=HS.zoom;const zs=!z?'—':z.running?(z.health&&z.health.state==='error'?'<span class="pill bad">Lỗi</span>':'<span class="pill ok">Đang chạy</span>'):'<span class="pill off">Đang tắt</span>';
  const b=A('build');

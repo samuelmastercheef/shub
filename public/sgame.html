@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Game</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px;max-width:1100px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 4px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.mut{color:var(--mut)}.err{color:var(--bad)}[hidden]{display:none!important}
+button{padding:8px 14px;cursor:pointer}button.s{padding:5px 11px;font-size:13px}button:disabled{opacity:.5;cursor:default}
+.sum{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.sum .big{font-size:28px;font-weight:700}.sum .grow{flex:1;min-width:220px}
+.bar{height:8px;background:var(--track);border-radius:6px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:10px}
+.tool{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);display:flex;flex-direction:column;gap:6px}
+.tool.miss{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}.tool.opt.miss{border-color:var(--line)}
+.th{display:flex;gap:8px;align-items:flex-start}.th b{flex:1}.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.bad{background:var(--bad-bg);color:var(--bad)}.pill.off{background:var(--off-bg);color:var(--mut)}.pill.run{background:var(--off-bg);color:var(--warn)}
+.tool p{margin:0;color:var(--mut);font-size:13px}.meta{font-size:12px;color:var(--mut);word-break:break-all}
+.tool .ft{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:auto}
+code.cmd{display:block;padding:6px 8px;border-radius:8px;font-size:12px;word-break:break-all;margin-top:4px}
+pre{background:var(--logbg);color:var(--logtx);border-radius:8px;padding:10px;max-height:260px;overflow:auto;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;margin:8px 0 0}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:460px;z-index:5}
+</style></head><body>
+<div class="row" style="margin-bottom:12px"><span class="pill ok" style="padding:4px 12px;font-size:13px">🧰 Công cụ làm game</span><a href="/cotich.html" style="text-decoration:none"><span class="pill off" style="padding:4px 12px;font-size:13px">🏯 Đất cổ tích: tiến độ, nhân vật, game, kênh, video ›</span></a></div>
+
+<div class="card"><div class="sum">
+ <div class="big" id="sBig">…</div>
+ <div class="grow"><b id="sTxt">Đang kiểm tra máy này…</b><div class="mut" id="sSub"></div><div class="bar"><i id="sBar" style="width:0"></i></div></div>
+ <div class="row"><button class="cta" id="bAll" disabled>Cài tất cả còn thiếu</button><button class="ghost" id="bRe">↻ Kiểm tra lại</button></div>
+</div>
+ <div id="job" class="mut" style="margin-top:10px" hidden></div>
+ <details id="dLog" style="margin-top:8px"><summary class="mut">Nhật ký cài đặt</summary><pre id="log">Chưa cài gì.</pre></details>
+</div>
+<div id="groups"></div>
+<div class="card mut" style="font-size:13px">
+ Bộ công cụ theo dự án game cổ tích: Trăm Trứng Phiêu Lưu (Godot 4), dựng tướng 3D từ ảnh 2D (Draw Things → Hunyuan3D/TripoSR → Blender), video 12 anh hùng (Blender render → ffmpeg ghép, giọng CIT Voice Studio, Whisper kiểm tra giọng).
+ Môi trường Python mới cài vào <code id="root">~/SGame</code>; nếu thư mục <code>~/Downloads/ClaudeCode/thu-3d</code> đã có sẵn môi trường thì S Game dùng luôn.
+ "Cài tất cả" bỏ qua mục đánh dấu <i>tuỳ chọn</i> và mục nặng; các mục đó bấm cài riêng.
+</div>
+<div id="msg" hidden></div>
+
+<script>
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=null,poll=null;
+const toast=(m,bad)=>{const e=$('msg');e.hidden=false;e.className=bad?'err':'';e.textContent=m;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,6000)};
+async function load(fresh){
+ try{S=await fetch('/api/sgame/status'+(fresh?'?fresh=1':'')).then(r=>r.json())}catch{return toast('Không gọi được S Hub',1)}
+ draw();
+ const running=S.job&&S.job.running;
+ if(running&&!poll)poll=setInterval(tick,1500);
+ if(!running&&poll){clearInterval(poll);poll=null}}
+async function tick(){
+ const l=await fetch('/api/sgame/logs').then(r=>r.json()).catch(()=>null);
+ if(l){const p=$('log');p.textContent=l.lines.map(x=>x.s).join('\n')||'…';p.scrollTop=p.scrollHeight}
+ const was=S&&S.job&&S.job.running;await load(false);
+ if(was&&!(S.job&&S.job.running)){await load(true);const f=S.job.failed||[];toast(f.length?'Cài xong, lỗi: '+f.map(x=>x.id).join(', '):'Cài xong',!!f.length)}}
+function draw(){
+ const s=S.summary,miss=s.missing.length,running=S.job&&S.job.running;
+ $('root').textContent=S.root;
+ $('sBig').textContent=`${s.ok}/${s.total}`;
+ $('sTxt').textContent=!S.supported?'S Game hỗ trợ macOS và Windows':miss?`Thiếu ${miss} công cụ cần cho làm game`:'Máy này đủ công cụ làm game';
+ $('sSub').textContent=(miss?s.missing.join(', '):'')+(s.optionalMissing?(miss?' · ':'')+s.optionalMissing+' mục tuỳ chọn chưa có (xuất bản Android, iOS…)':'')+` · cài bằng ${S.pm==='winget'?'winget (Windows)':'Homebrew (Mac)'}`;
+ $('sBar').style.width=(s.total?Math.round(s.ok/s.total*100):0)+'%';
+ const autoMiss=S.tools.filter(t=>!t.ok&&t.auto&&!t.optional&&!t.heavy);
+ $('bAll').disabled=running||!autoMiss.length;$('bAll').textContent=running?'Đang cài…':autoMiss.length?`Cài tất cả còn thiếu (${autoMiss.length})`:'Không còn gì để tự cài';
+ const j=S.job;$('job').hidden=!j;
+ if(j)$('job').innerHTML=j.running?`⏳ Đang cài <b>${esc((S.tools.find(t=>t.id===j.current)||{}).name||'…')}</b> (${j.done.length+j.failed.length+1}/${j.order.length}). Có thể mất vài phút, giữ S Hub mở.`
+  :j.order.length?`Lần cài gần nhất: xong ${j.done.length}/${j.order.length}${j.failed.length?`, <span class="err">lỗi: ${j.failed.map(f=>esc(f.error)).join('; ')}</span>`:''}.`:esc(j.error||'Không có gì cần cài.');
+ $('groups').innerHTML=S.groups.map(g=>{const ts=S.tools.filter(t=>t.group===g.id);if(!ts.length)return'';const ok=ts.filter(t=>t.ok).length;
+  return`<div class="card"><div class="row"><h2>${g.icon} ${esc(g.name)}</h2><span class="mut" style="margin-left:auto">${ok}/${ts.length}</span></div><div class="mut">${esc(g.desc)}</div><div class="tools">${ts.map(t=>tool(t,running)).join('')}</div></div>`}).join('');
+ document.querySelectorAll('[data-inst]').forEach(b=>b.onclick=()=>install([b.dataset.inst],b.dataset.heavy));
+ document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(b.dataset.copy).then(()=>toast('Đã chép lệnh'))})}
+function tool(t,running){
+ const cur=running&&S.job.current===t.id,queued=running&&S.job.order.includes(t.id)&&!S.job.done.includes(t.id)&&!cur;
+ const st=t.ok?'<span class="pill ok">✓ Đã có</span>':cur?'<span class="pill run">Đang cài…</span>':queued?'<span class="pill run">Chờ cài</span>':t.optional?'<span class="pill off">Chưa có · tuỳ chọn</span>':'<span class="pill bad">✕ Thiếu</span>';
+ const meta=t.ok?`<div class="meta">${t.version?'Bản '+esc(t.version)+' · ':''}${esc(t.where)}${t.note?' · '+esc(t.note):''}</div>`:t.note?`<div class="meta">${esc(t.note)}</div>`:'';
+ let act='';
+ if(!t.ok){
+  if(t.auto)act=`<button class="${t.optional||t.heavy?'ghost':'cta'} s" data-inst="${t.id}" data-heavy="${esc(t.heavy)}" ${running?'disabled':''}>Cài ${esc(t.name.split(' (')[0])}</button>${t.heavy?`<span class="mut" style="font-size:12px">${esc(t.heavy)}</span>`:''}${t.needs.length?`<span class="mut" style="font-size:12px">cần ${t.needs.join(', ')}</span>`:''}`;
+  else if(t.manual)act=`<div style="width:100%"><div class="mut" style="font-size:13px">${esc(t.manual.text)}</div>${t.manual.cmd?`<code class="cmd">${esc(t.manual.cmd)}</code>`:''}<div class="row" style="margin-top:6px">${t.manual.cmd?`<button class="ghost s" data-copy="${esc(t.manual.cmd)}">Chép lệnh</button>`:''}${t.manual.url?`<a href="${esc(t.manual.url)}" target="_blank" rel="noopener">Mở trang tải ↗</a>`:''}</div></div>`;
+ }
+ return`<div class="tool ${t.ok?'':'miss'} ${t.optional?'opt':''}"><div class="th"><b>${esc(t.name)}</b>${st}</div><p>${esc(t.desc)}</p>${meta}${act?`<div class="ft">${act}</div>`:''}</div>`}
+async function install(ids,heavy){
+ if(heavy&&!confirm('Mục này nặng ('+heavy+'). Cài ngay?'))return;
+ const r=await fetch('/api/sgame/install',{method:'POST',body:JSON.stringify(ids?{ids}:{all:true})}).then(r=>r.json()).catch(()=>({error:'Không gọi được S Hub'}));
+ if(r.error)return toast(r.error,1);
+ $('dLog').open=true;$('log').textContent='Bắt đầu cài…';await load(false);if(!poll)poll=setInterval(tick,1500)}
+$('bAll').onclick=()=>install(null);
+$('bRe').onclick=async()=>{$('sTxt').textContent='Đang kiểm tra lại…';await load(true);toast('Đã kiểm tra lại')};
+load(false);
+</script></body></html>
