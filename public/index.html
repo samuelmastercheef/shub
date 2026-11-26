@@ -5,110 +5,200 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css">
 <style>
 *{box-sizing:border-box}html,body{height:100%;margin:0}
-body{display:grid;grid-template-columns:248px 1fr;font-size:14px;line-height:1.5}
-aside{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;overflow:auto}
-.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 18px;cursor:pointer}
+body{display:grid;grid-template-columns:252px 1fr;font-size:14px;line-height:1.5}
+aside{background:var(--side);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:16px 12px;overflow:auto;min-width:0}
+.brand{display:flex;align-items:center;gap:11px;padding:2px 8px 14px;cursor:pointer}
 .brand img{width:38px;height:38px;border-radius:11px}.brand b{display:block;font-size:19px;line-height:1.1;letter-spacing:-.01em}.brand small{color:var(--mut);font-size:11.5px}
-.grp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:16px 10px 6px}
-.nav{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:var(--r1);cursor:pointer;color:var(--tx);font-weight:500;position:relative}
+.search{position:relative;margin:0 2px 10px}
+.search input{width:100%;padding:8px 10px 8px 32px;font-size:13.5px}
+.search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:13px;pointer-events:none}
+.search kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font:600 10.5px/1 inherit;color:var(--mut);border:1px solid var(--line);border-radius:5px;padding:3px 5px;background:var(--card)}
+.results{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--card);border:1px solid var(--line);border-radius:var(--r2);box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:20;padding:5px;display:none;max-height:340px;overflow:auto}
+.results.show{display:block}
+.res{display:flex;gap:10px;align-items:center;padding:7px 9px;border-radius:var(--r1);cursor:pointer}.res.sel,.res:hover{background:var(--hover)}
+.res .e{font-size:17px;width:22px;text-align:center}.res b{display:block;font-weight:600;font-size:13.5px}.res span span{color:var(--mut);font-size:11.5px}
+.grp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 10px 6px}
+.nav{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:var(--r1);cursor:pointer;color:var(--tx);font-weight:500;position:relative;user-select:none}
 .nav:hover{background:var(--hover)}.nav.on{background:var(--hover);color:var(--acc-t)}.nav.on::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:3px;border-radius:0 3px 3px 0;background:var(--sun)}
-.nav .i{width:22px;text-align:center;font-size:16px}.nav .n{flex:1}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--mut);flex:none}.dot.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}.dot.off{background:var(--bad)}
+.nav .i{width:22px;text-align:center;font-size:16px}.nav .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnt{font-size:11px;font-weight:600;color:var(--mut);background:var(--off-bg);border-radius:99px;padding:1px 8px}
+.nav.sm{padding:6px 10px;font-size:13px;font-weight:400}.nav.sm .i{font-size:14px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mut);flex:none;display:inline-block}.dot.on{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}.dot.off{background:var(--bad)}
 .foot{margin-top:auto;padding:14px 10px 2px;color:var(--mut);font-size:11.5px;border-top:1px solid var(--line)}
 main{display:flex;flex-direction:column;min-width:0;height:100vh}
-.top{display:flex;align-items:center;gap:12px;padding:14px 26px;border-bottom:1px solid var(--line);background:var(--side)}
-.top h1{font-size:18px;margin:0;font-weight:700}.top .sub{color:var(--mut);font-size:13px;flex:1}
+.top{display:flex;align-items:center;gap:12px;padding:12px 26px;border-bottom:1px solid var(--line);background:var(--side);min-height:62px}
+.top .tt{flex:1;min-width:0}
+.crumb{font-size:12px;color:var(--mut);display:flex;gap:6px;align-items:center}.crumb a{cursor:pointer;color:var(--mut);text-decoration:none}.crumb a:hover{color:var(--acc-t)}
+.top h1{font-size:18px;margin:0;font-weight:700;line-height:1.3}.top .sub{color:var(--mut);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#back{padding:7px 12px;font-size:13px}
 .view{flex:1;overflow:auto;padding:24px 26px 40px}
 iframe{flex:1;border:0;width:100%;background:var(--bg)}
 .msg{margin:60px auto;max-width:460px;text-align:center;color:var(--mut)}.msg .big{font-size:42px}.msg h3{color:var(--tx);margin:8px 0}
-h2.sec{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:30px 0 12px}
-h2.sec:first-child{margin-top:0}
-.flow{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;align-items:stretch;gap:0}
+h2.sec{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:30px 0 12px;display:flex;align-items:center;gap:10px}
+h2.sec:first-child{margin-top:0}h2.sec .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500}
+/* Danh mục trên trang chủ */
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.cat{background:var(--card);border:1px solid var(--line);border-radius:var(--r3);padding:18px;box-shadow:var(--shadow);cursor:pointer;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s}
+.cat:hover{border-color:var(--acc);transform:translateY(-2px)}
+.cat .hd{display:flex;align-items:center;gap:12px}.cat .ce{width:44px;height:44px;border-radius:13px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.cat b{font-size:15.5px;display:block}.cat .mut{display:block}.cat p{margin:0;color:var(--mut);font-size:13px;flex:1}
+.cat .ft{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:var(--in);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
+/* Bảng tool trong danh mục */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color .15s,transform .15s}
+.tool:hover{border-color:var(--acc);transform:translateY(-1px)}
+.tool .hd{display:flex;gap:12px;align-items:center}.tool .te{width:42px;height:42px;border-radius:12px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:21px;flex:none}
+.tool b{font-size:15px;display:block}.tool p{margin:0;color:var(--mut);font-size:13px;flex:1}
+.tool .ft{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.st{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
+.tool button{padding:6px 14px;font-size:13px}
+.others{display:flex;gap:8px;flex-wrap:wrap}.others .chip{cursor:pointer;padding:5px 12px;font-size:13px}.others .chip:hover{border-color:var(--acc)}
+/* Quy trình */
+.flow{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr;align-items:stretch}
 .arrow{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:20px}
-.step{background:var(--card);border:1px solid var(--line);border-radius:var(--r3);padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
-.step .num{width:26px;height:26px;border-radius:50%;background:var(--sun);color:#2A1A00;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
-.step .hd{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}.step p{margin:0;color:var(--mut);flex:1}
-.step .st{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;display:flex;gap:12px;align-items:center;transition:border-color .15s,transform .15s}
-.tile:hover{border-color:var(--acc);transform:translateY(-1px)}.tile .e{font-size:24px}.tile b{display:block}.tile span{color:var(--mut);font-size:12.5px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--shadow)}.kpi span{color:var(--mut);font-size:12.5px}.kpi b{display:block;font-size:22px;margin-top:2px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.step .num{width:24px;height:24px;border-radius:50%;background:var(--sun);color:#2A1A00;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:12.5px}
+.step .hd{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}.step p{margin:0;color:var(--mut);font-size:13px;flex:1}
+.step button{align-self:flex-start;padding:6px 14px;font-size:13px}
+.recent{display:flex;gap:8px;flex-wrap:wrap}.recent .chip{cursor:pointer;padding:6px 12px;font-size:13px}.recent .chip:hover{border-color:var(--acc)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .list{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);overflow:hidden}
-.row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+.row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);gap:10px}.row:last-child{border-bottom:0}
 .pill{padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
 .mut{color:var(--mut);font-size:12.5px}
-@media(max-width:900px){body{grid-template-columns:1fr}aside{display:none}.flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);height:24px}}
+@media(max-width:900px){
+ body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+ aside{flex-direction:row;align-items:center;gap:4px;padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden}
+ aside .brand{padding:0 8px 0 0}.brand small,.brand b{display:none}aside .search,aside .grp,aside #n_recent,aside .foot{display:none}
+ aside #n_cats{display:flex;gap:4px}.nav{white-space:nowrap;padding:7px 10px}.nav .cnt,.nav .dot{display:none}.nav.on::before{display:none}
+ main{height:auto;min-height:0}.top{padding:10px 16px}.view{padding:16px}
+ .flow{grid-template-columns:1fr}.arrow{transform:rotate(90deg);height:22px}}
 </style></head><body>
 <aside>
  <div class="brand" data-go="home"><img src="/brand/icon.svg" alt="S Hub"><span><b>S Hub</b><small>by Socin</small></span></div>
- <div class="nav on" data-go="home"><span class="i">🏠</span><span class="n">Tổng quan</span></div>
- <div class="grp">Dựng &amp; kiểm thử</div><div id="n_dev"></div>
- <div class="grp">Mã nguồn &amp; Claude</div><div id="n_src"></div>
- <div class="grp">Máy chủ</div><div id="n_srv"></div>
- <div class="grp">Ứng dụng Socin</div><div id="n_app"></div>
+ <div class="search"><span class="ic">🔍</span><input id="q" placeholder="Tìm công cụ…" autocomplete="off" aria-label="Tìm công cụ"><kbd>/</kbd><div class="results" id="res"></div></div>
+ <div class="nav" data-go="home"><span class="i">🏠</span><span class="n">Tổng quan</span></div>
+ <div class="grp">Danh mục</div><div id="n_cats"></div>
+ <div id="n_recent"></div>
  <div class="foot">© Socin.org<br><span id="clock"></span></div>
 </aside>
 <main>
- <div class="top"><h1 id="ttl">Tổng quan</h1><span class="sub" id="sub">Mọi công cụ của Socin trong một nơi</span>
+ <div class="top"><button class="ghost" id="back" style="display:none">‹ Quay lại</button>
+  <div class="tt"><div class="crumb" id="crumb" style="display:none"></div><h1 id="ttl">Tổng quan</h1><div class="sub" id="sub">Mọi công cụ của Socin trong một nơi</div></div>
   <button class="ghost" id="reload" style="display:none">Tải lại</button><button class="ghost" id="pop" style="display:none">Mở cửa sổ riêng</button></div>
- <div class="view" id="home"></div><iframe id="fr" style="display:none" title="app"></iframe><div class="view" id="msgv" style="display:none"><div class="msg" id="msg"></div></div>
+ <div class="view" id="home"></div><div class="view" id="catv" style="display:none"></div><iframe id="fr" style="display:none" title="app"></iframe><div class="view" id="msgv" style="display:none"><div class="msg" id="msg"></div></div>
 </main>
 <script>
 const $=id=>document.getElementById(id);let apps=[],cur='home',reports=[],servers=[];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const GROUP={build:'n_dev',xpub:'n_dev',test:'n_dev',vps:'n_srv',zoom:'n_srv',github:'n_src',creator:'n_src',files:'n_src',claude:'n_src'};
-const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ, xpub nạp USDT BEP20/TRC20 (offline), QR, in, gom tiền',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động',zoom:'Chạy zoom-worker cho Zoom giữ phòng của Socin'};
-const A=id=>apps.find(a=>a.id===id)||{};
+// Danh mục: menu chính chỉ hiện danh mục, bấm vào mới thấy bảng công cụ. Công cụ lạ trong config.json: type "launch" vào "Ứng dụng trên Mac", còn lại vào "Khác".
+const CATS=[
+ {id:'release',icon:'🚀',name:'Dựng & kiểm thử',desc:'Kiểm thử repo và dựng app Mac, Windows, Android, iOS trước khi phát hành.',tools:['test','build']},
+ {id:'server',icon:'🖥',name:'Máy chủ & thiết bị',desc:'Triển khai lên VPS, điều khiển máy Windows từ xa, chạy worker của Socin.',tools:['vps','remote','zoom']},
+ {id:'code',icon:'🧠',name:'Mã nguồn & AI',desc:'Quản lý repo GitHub, workflow Claude và kho file tải về.',tools:['github','claude','files']},
+ {id:'content',icon:'🎬',name:'Nội dung',desc:'Tạo content, ảnh, video từ concept và đăng theo lịch qua Socin.',tools:['creator']},
+ {id:'wallet',icon:'💰',name:'Ví & thanh toán',desc:'Tạo xpub, địa chỉ nạp USDT BEP20/TRC20 và gom tiền về ví chính.',tools:['xpub','sweep']},
+ {id:'mac',icon:'💻',name:'Ứng dụng trên Mac',desc:'Mở nhanh các app Socin đã cài trên máy này.',tools:[]},
+ {id:'other',icon:'📦',name:'Khác',desc:'Công cụ thêm trong config.json chưa thuộc danh mục nào.',tools:[]}];
+// Trang phụ không có trong /api/apps, chỉ hiện khi công cụ "cha" có mặt
+const PAGES={sweep:{id:'sweep',parent:'xpub',name:'Gom tiền BEP20',icon:'💸',type:'page',path:'/sweep.html',desc:'Gom USDT BEP20 từ các địa chỉ nạp về ví chính (trang riêng, cần mạng)'}};
+const SUB={home:'Mọi công cụ của Socin trong một nơi',build:'Dựng app Mac, Windows, Android, iOS từ repo GitHub',test:'Lint, build, test, bảo mật và giao diện cho repo GitHub',xpub:'Tạo cụm 12 từ, xpub nạp USDT BEP20/TRC20 (offline), QR, in, gom tiền',sweep:'Gom USDT BEP20 về ví chính, trang riêng cần mạng',vps:'Deploy từ GitHub, backup, Docker, dọn rác tự động',zoom:'Chạy zoom-worker cho Zoom giữ phòng của Socin',remote:'Điều khiển máy Windows của bạn từ Mac này'};
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const A=id=>apps.find(a=>a.id===id)||(PAGES[id]&&apps.some(a=>a.id===PAGES[id].parent)?PAGES[id]:{});
+const catOf=id=>{const c=CATS.find(c=>c.tools.includes(id));if(c)return c.id;const a=A(id);return a.type==='launch'?'mac':'other'};
+const catTools=cid=>{const c=CATS.find(x=>x.id===cid);const listed=c.tools.map(A).filter(a=>a.id);const extra=apps.filter(a=>!CATS.some(x=>x.tools.includes(a.id))&&catOf(a.id)===cid);return[...listed,...extra]};
+const visibleCats=()=>CATS.filter(c=>catTools(c.id).length);
 const dotCls=a=>a.online===true?'on':a.online===false?'off':'';
+const running=list=>list.filter(a=>a.type==='web'&&a.online===true).length;
 async function load(){
  try{apps=(await (await fetch('/api/apps')).json()).apps}catch{apps=[]}
  try{reports=(await (await fetch('/api/reports?all=1')).json()).reports}catch{reports=[]}
  try{servers=(await (await fetch('/api/vps/servers')).json()).servers||[]}catch{servers=[]}
- nav();if(cur==='home')home()}
+ nav();render()}
+function render(){if(cur==='home')home();else if(cur.startsWith('c-'))catView(cur.slice(2))}
+function bindGo(root){root.querySelectorAll('[data-go]').forEach(n=>n.onclick=e=>{e.stopPropagation();go(n.dataset.go)})}
 function nav(){
- const mk=a=>`<div class="nav ${cur===a.id?'on':''}" data-go="${a.id}"><span class="i">${a.icon||'📦'}</span><span class="n">${esc(a.name)}</span><i class="dot ${dotCls(a)}"></i></div>`;
- ['n_dev','n_src','n_srv','n_app'].forEach(g=>$(g).innerHTML=apps.filter(a=>(GROUP[a.id]||'n_app')===g).map(mk).join(''));
- document.querySelectorAll('[data-go]').forEach(n=>n.onclick=()=>go(n.dataset.go));
- document.querySelector('aside .nav[data-go=home]').classList.toggle('on',cur==='home')}
-function stateOf(a){return a.online?'<i class="dot on"></i>Đang chạy':a.canStart?'<i class="dot"></i>Sẵn sàng khởi động':'<i class="dot off"></i>Chưa chạy'}
+ const curCat=cur==='home'?'':cur.startsWith('c-')?cur.slice(2):catOf(cur);
+ $('n_cats').innerHTML=visibleCats().map(c=>{const t=catTools(c.id),r=running(t);
+  return `<div class="nav ${curCat===c.id?'on':''}" data-go="c-${c.id}" title="${esc(t.map(a=>a.name).join(', '))}"><span class="i">${c.icon}</span><span class="n">${esc(c.name)}</span>${r?'<i class="dot on"></i>':''}<span class="cnt">${t.length}</span></div>`}).join('');
+ const rec=recent();
+ $('n_recent').innerHTML=rec.length?`<div class="grp">Dùng gần đây</div>`+rec.slice(0,4).map(a=>`<div class="nav sm ${cur===a.id?'on':''}" data-go="${a.id}"><span class="i">${a.icon||'📦'}</span><span class="n">${esc(a.name)}</span></div>`).join(''):'';
+ document.querySelector('aside > .nav[data-go=home]').classList.toggle('on',cur==='home');
+ bindGo(document.querySelector('aside'))}
+function recent(){return store.get('shub.recent',[]).map(A).filter(a=>a.id)}
+function pushRecent(id){store.set('shub.recent',[id,...store.get('shub.recent',[]).filter(x=>x!==id)].slice(0,8))}
+function stateOf(a){
+ if(a.type==='internal')return'<i class="dot on"></i>Tích hợp sẵn';
+ if(a.type==='page')return'<i class="dot on"></i>Trang riêng';
+ if(a.type==='launch')return'<i class="dot"></i>Mở app trên Mac';
+ return a.online?'<i class="dot on"></i>Đang chạy':a.canStart?'<i class="dot"></i>Sẵn sàng khởi động':'<i class="dot off"></i>Chưa chạy'}
 function home(){
- const last=reports[0];const fails=reports.filter(r=>r.failed).length;
- const b=A('build'),t=A('test'),v=A('vps');
+ const last=reports[0];const fails=reports.filter(r=>r.failed).length;const rec=recent();
  $('home').innerHTML=`
+ ${rec.length?`<h2 class="sec">Dùng gần đây</h2><div class="recent">${rec.slice(0,6).map(a=>`<span class="chip" data-go="${a.id}">${a.icon||'📦'} ${esc(a.name)}</span>`).join('')}</div>`:''}
+ <h2 class="sec">Danh mục công cụ <span class="r mut">${apps.length} công cụ trong ${visibleCats().length} danh mục</span></h2>
+ <div class="cats">${visibleCats().map(c=>{const t=catTools(c.id),r=running(t);return `<div class="cat" data-go="c-${c.id}">
+  <div class="hd"><span class="ce">${c.icon}</span><span><b>${esc(c.name)}</b><span class="mut">${t.length} công cụ${r?` · <i class="dot on"></i> ${r} đang chạy`:''}</span></span></div>
+  <p>${esc(c.desc)}</p><div class="ft">${t.slice(0,4).map(a=>`<span class="chip">${a.icon||'📦'} ${esc(a.name)}</span>`).join('')}${t.length>4?`<span class="chip">+${t.length-4}</span>`:''}</div></div>`}).join('')}</div>
  <h2 class="sec">Quy trình phát hành</h2>
  <div class="flow">
-  <div class="step"><div class="hd"><span class="num">1</span>Kiểm thử</div><p>Chạy lint, build, test, quét khóa bí mật và thử giao diện cho repo trước khi phát hành.</p><div class="st">${last?`Lần gần nhất: <span class="pill ${last.failed?'bad':'ok'}">${last.failed?last.failed+' lỗi':'đạt'}</span> ${esc(last.repo)}`:'Chưa có lần chạy nào'}</div><button class="cta" data-go="test">Mở S Test Hub</button></div>
+  <div class="step"><div class="hd"><span class="num">1</span>Kiểm thử</div><p>${last?`Lần gần nhất: <span class="pill ${last.failed?'bad':'ok'}">${last.failed?last.failed+' lỗi':'đạt'}</span> ${esc(last.repo)}`:'Chưa có lần chạy nào'}</p><button class="cta" data-go="test">Mở S Test Hub</button></div>
   <div class="arrow">›</div>
-  <div class="step"><div class="hd"><span class="num">2</span>Dựng app</div><p>Build app Mac, Windows, Android, iOS ngay trên MacBook, không tốn GitHub Actions.</p><div class="st">${stateOf(b)}</div><button class="cta" data-go="build">Mở S Build Hub</button> <button class="ghost s" data-go="xpub" title="Tạo cụm 12 từ và xpub cho S Prime CopyTrade Pay">🔑 S Xpub</button></div>
+  <div class="step"><div class="hd"><span class="num">2</span>Dựng app</div><p class="st">${stateOf(A('build'))}</p><button class="cta" data-go="build">Mở S Build Hub</button></div>
   <div class="arrow">›</div>
-  <div class="step"><div class="hd"><span class="num">3</span>Triển khai</div><p>Đưa mã lên VPS, tự cập nhật, backup nhiều phiên bản, quản lý Docker và dọn rác.</p><div class="st">${servers.length?`<i class="dot on"></i>${servers.length} server đã thêm`:'<i class="dot"></i>Chưa thêm server'}</div><button class="cta" data-go="vps">Mở S VPS</button></div>
+  <div class="step"><div class="hd"><span class="num">3</span>Triển khai</div><p class="st">${servers.length?`<i class="dot on"></i>${servers.length} server đã thêm`:'<i class="dot"></i>Chưa thêm server'}</p><button class="cta" data-go="vps">Mở S VPS</button></div>
  </div>
  <h2 class="sec">Trạng thái nhanh</h2>
  <div class="kpis">
   <div class="kpi"><span>Lần kiểm thử gần đây</span><b>${reports.length}</b></div>
   <div class="kpi"><span>Có lỗi cần xem</span><b style="color:${fails?'var(--bad)':'var(--ok)'}">${fails}</b></div>
   <div class="kpi"><span>Server VPS</span><b>${servers.length}</b></div>
-  <div class="kpi"><span>Công cụ đang chạy</span><b>${apps.filter(a=>a.online===true).length}/${apps.filter(a=>a.online!==null).length}</b></div>
+  <div class="kpi"><span>App ngoài đang chạy</span><b>${running(apps)}/${apps.filter(a=>a.type==='web').length}</b></div>
  </div>
- <h2 class="sec">Ứng dụng Socin</h2>
- <div class="tiles">${apps.filter(a=>a.type==='launch').map(a=>`<div class="tile" data-go="${a.id}"><span class="e">${a.icon||'📦'}</span><span><b>${esc(a.name)}</b><span>${esc(a.desc||'')}</span></span></div>`).join('')||'<span class="mut">Chưa cấu hình ứng dụng nào trong config.json</span>'}</div>
  <h2 class="sec">Kiểm thử gần đây</h2>
- <div class="list">${reports.slice(0,6).map(p=>`<div class="row"><span><b>${esc(p.repo)}</b></span><span><span class="pill ${p.failed?'bad':'ok'}">${p.failed?p.failed+' lỗi':'đạt'}</span> <span class="mut">${new Date(p.at).toLocaleString('vi-VN')}</span></span></div>`).join('')||'<div class="row mut">Chưa có lần chạy nào. Mở S Test Hub để kiểm thử repo đầu tiên.</div>'}</div>`;
- document.querySelectorAll('#home [data-go]').forEach(n=>n.onclick=()=>go(n.dataset.go))}
-function show(mode){$('home').style.display=mode==='home'?'block':'none';$('fr').style.display=mode==='fr'?'block':'none';$('msgv').style.display=mode==='msg'?'block':'none';$('reload').style.display=$('pop').style.display=mode==='fr'?'':'none'}
+ <div class="list">${reports.slice(0,5).map(p=>`<div class="row"><span><b>${esc(p.repo)}</b></span><span><span class="pill ${p.failed?'bad':'ok'}">${p.failed?p.failed+' lỗi':'đạt'}</span> <span class="mut">${new Date(p.at).toLocaleString('vi-VN')}</span></span></div>`).join('')||'<div class="row mut">Chưa có lần chạy nào. Mở S Test Hub để kiểm thử repo đầu tiên.</div>'}</div>`;
+ bindGo($('home'))}
+function catView(cid){
+ const c=CATS.find(x=>x.id===cid);if(!c)return;const t=catTools(cid);
+ $('catv').innerHTML=`<div class="tools">${t.map(a=>`<div class="tool" data-go="${a.id}">
+  <div class="hd"><span class="te">${a.icon||'📦'}</span><span><b>${esc(a.name)}</b></span></div>
+  <p>${esc(a.desc||'')}</p>
+  <div class="ft"><span class="st">${stateOf(a)}</span><button class="${a.type==='launch'?'ghost':'cta'}" data-go="${a.id}">${a.type==='launch'?'Mở app':'Mở'}</button></div></div>`).join('')||'<span class="mut">Chưa có công cụ nào.</span>'}</div>
+ <h2 class="sec">Danh mục khác</h2><div class="others">${visibleCats().filter(x=>x.id!==cid).map(x=>`<span class="chip" data-go="c-${x.id}">${x.icon} ${esc(x.name)} <span class="mut">${catTools(x.id).length}</span></span>`).join('')}</div>`;
+ bindGo($('catv'))}
+function show(mode){for(const[k,el]of Object.entries({home:'home',cat:'catv',fr:'fr',msg:'msgv'}))$(el).style.display=mode===k?'block':'none';$('reload').style.display=$('pop').style.display=mode==='fr'?'':'none'}
 function say(icon,title,html){show('msg');$('msg').innerHTML=`<div class="big">${icon}</div><h3>${title}</h3><div>${html}</div>`}
+function header(title,sub,cat){
+ $('ttl').textContent=title;$('sub').textContent=sub||'';
+ $('crumb').style.display=$('back').style.display=cat?'':'none';
+ if(cat){$('crumb').innerHTML=`<a data-go="home">Tổng quan</a>›<a data-go="c-${cat.id}">${cat.icon} ${esc(cat.name)}</a>`;bindGo($('crumb'));$('back').textContent='‹ '+cat.name;$('back').onclick=()=>go('c-'+cat.id)}}
 async function go(id){
- cur=id;location.hash=id;nav();$('sub').textContent=SUB[id]||'';
- if(id==='home'){$('ttl').textContent='Tổng quan';show('home');return load()}
- const a=A(id);if(!a.id)return;$('ttl').textContent=a.name;
+ closeSearch();cur=id;location.hash=id;
+ if(id==='home'){nav();header('Tổng quan',SUB.home);show('home');return load()}
+ if(id.startsWith('c-')){const c=CATS.find(x=>x.id===id.slice(2));if(!c)return go('home');nav();header(c.icon+' '+c.name,c.desc);$('crumb').style.display='none';$('back').style.display='';$('back').textContent='‹ Tổng quan';$('back').onclick=()=>go('home');show('cat');return catView(c.id)}
+ const a=A(id);if(!a.id)return go('home');
+ pushRecent(id);nav();header(a.name,SUB[id]||a.desc,CATS.find(c=>c.id===catOf(id)));
+ if(a.type==='page'){show('fr');$('fr').src=a.path;$('pop').onclick=()=>window.open(a.path,'_blank');$('reload').onclick=()=>{$('fr').src=a.path};return}
  if(a.type==='launch'){const r=await fetch('/api/launch',{method:'POST',body:JSON.stringify({id})}).then(r=>r.json());return r.error?say('⚠️','Chưa mở được',esc(r.error)):say(a.icon||'🚀','Đã mở '+esc(a.name),'Ứng dụng chạy ở cửa sổ riêng trên máy của bạn.')}
  let u=a.online?a.url:null;
  if(!u&&a.canStart){say('⏳','Đang khởi động '+esc(a.name),'Vui lòng chờ vài giây…');await fetch('/api/launch',{method:'POST',body:JSON.stringify({id})});
   for(let i=0;i<20&&!u;i++){await new Promise(r=>setTimeout(r,1500));await load();const n=A(id);if(n.online)u=n.url}}
  if(!u)return say('🔌',esc(a.name)+' chưa chạy','Hãy mở app này lên rồi bấm lại. Hoặc điền <code>url</code> và <code>startCommand</code> cho "'+esc(a.id)+'" trong config.json để S Hub tự khởi động.');
  show('fr');$('fr').src=u;$('pop').onclick=()=>window.open(u,'_blank');$('reload').onclick=()=>{$('fr').src=u}}
+// Tìm công cụ: gõ để lọc, ↑↓ chọn, Enter mở, phím / hoặc ⌘K để mở ô tìm
+let sel=0,hits=[];
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/gi,'d').toLowerCase();
+function allTools(){return[...apps,...Object.values(PAGES).map(p=>A(p.id)).filter(a=>a.id)]}
+function search(){const q=norm($('q').value.trim());if(!q)return closeSearch();
+ hits=allTools().filter(a=>norm(a.name+' '+a.desc+' '+(CATS.find(c=>c.id===catOf(a.id))||{}).name).includes(q)).sort((x,y)=>norm(y.name).includes(q)-norm(x.name).includes(q)).slice(0,8);sel=0;drawHits()}
+function drawHits(){$('res').classList.add('show');$('res').innerHTML=hits.map((a,i)=>`<div class="res ${i===sel?'sel':''}" data-go="${a.id}"><span class="e">${a.icon||'📦'}</span><span><b>${esc(a.name)}</b><span>${esc((CATS.find(c=>c.id===catOf(a.id))||{}).name||'')}</span></span></div>`).join('')||'<div class="res mut">Không tìm thấy công cụ nào</div>';bindGo($('res'))}
+function closeSearch(){$('res').classList.remove('show');$('q').value=''}
+$('q').oninput=search;
+$('q').onkeydown=e=>{if(e.key==='ArrowDown'){sel=Math.min(sel+1,hits.length-1);drawHits();e.preventDefault()}else if(e.key==='ArrowUp'){sel=Math.max(sel-1,0);drawHits();e.preventDefault()}else if(e.key==='Enter'&&hits[sel]){go(hits[sel].id);$('q').blur()}else if(e.key==='Escape'){closeSearch();$('q').blur()}};
+$('q').onblur=()=>setTimeout(()=>$('res').classList.remove('show'),150);
+document.addEventListener('keydown',e=>{if((e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))||(e.key==='k'&&(e.metaKey||e.ctrlKey))){e.preventDefault();$('q').focus()}});
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1)||'home';if(h!==cur)go(h)});
 setInterval(()=>{$('clock').textContent=new Date().toLocaleString('vi-VN')},1000);
-setInterval(()=>fetch('/api/apps').then(r=>r.json()).then(d=>{apps=d.apps;nav()}).catch(()=>{}),15000);
+setInterval(()=>fetch('/api/apps').then(r=>r.json()).then(d=>{apps=d.apps;nav();if(cur.startsWith('c-'))render()}).catch(()=>{}),15000);
 load().then(()=>{const h=location.hash.slice(1);if(h&&h!=='home')go(h)});
 </script></body></html>

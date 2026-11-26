@@ -8,7 +8,17 @@ Một giao diện tổng cho các tool: S Build Hub, S Test Hub, S VPS và các 
 3. Bấm `start.command`, mở http://127.0.0.1:4777
 
 ## Giao diện
-- Tổng quan: thẻ trạng thái từng tool (chấm xanh = đang chạy), kiểm tra gần đây.
+- Menu chính chỉ có **Tổng quan** và các **danh mục**; bấm vào danh mục mới hiện bảng công cụ thuộc nhóm đó (tên, mô tả, trạng thái, nút Mở). Đang ở trong công cụ thì có đường dẫn `Tổng quan › Danh mục` và nút quay lại.
+  - 🚀 Dựng & kiểm thử: S Test Hub, S Build Hub
+  - 🖥 Máy chủ & thiết bị: S VPS, S Remote, S Zoom worker
+  - 🧠 Mã nguồn & AI: S GitHub, S Claude, Kho file
+  - 🎬 Nội dung: S Creator
+  - 💰 Ví & thanh toán: S Xpub, Gom tiền BEP20
+  - 💻 Ứng dụng trên Mac: các app `type: "launch"` (S Chat, S VPN, S Clean, Terminal Socin)
+  - 📦 Khác: công cụ tự thêm trong config.json chưa thuộc nhóm nào (chỉ hiện khi có)
+  Sửa nhóm ở mảng `CATS` đầu phần script của `public/index.html`.
+- Ô **Tìm công cụ** (phím `/` hoặc ⌘K) tìm theo tên, mô tả, danh mục, gõ không dấu cũng được. Mục **Dùng gần đây** nhớ 4 công cụ mở gần nhất (lưu trong trình duyệt).
+- Tổng quan: thẻ các danh mục, quy trình Kiểm thử → Dựng app → Triển khai, trạng thái nhanh, kiểm tra gần đây.
 - S Build Hub: tự dò app đang chạy trên máy theo tiêu đề trang "Build Hub" và nhúng vào đây. Nếu không dò được, điền `url` và `startCommand` trong config.json.
 - S Test Hub: tích hợp sẵn (lint, build, test, bảo mật, giao diện).
 - App khác: bấm là mở app trên máy bằng lệnh `command` trong config.json (sửa tên app cho đúng).
