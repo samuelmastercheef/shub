@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>S Remote</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:18px 24px;max-width:1040px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px}
+input,select{background:var(--in);border:1px solid var(--line);color:var(--tx);padding:8px;border-radius:8px;font:inherit;width:100%}
+label{display:grid;gap:4px;font-weight:500;margin-bottom:10px}label small{font-weight:400;color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.mut{color:var(--mut)}.err{color:var(--bad)}.ok{color:var(--ok)}.wn{color:var(--warn)}[hidden]{display:none!important}
+.dev{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--bg)}
+.dev b{font-size:15px}.dev .go{font-size:16px;padding:10px 22px}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}.tool{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+pre{background:var(--in);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:220px;overflow:auto;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;margin:0}
+#msg{position:fixed;right:20px;bottom:20px;background:var(--card);border:1px solid var(--line);padding:10px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:460px;z-index:5}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:14px;max-width:620px;width:92vw}dialog::backdrop{background:rgba(0,0,0,.5)}
+ol{margin:6px 0 0 18px;padding:0}ol li{margin:4px 0}.busy{opacity:.6;pointer-events:none}
+</style></head><body>
+
+<div class="card"><h2>Máy Windows của bạn</h2>
+ <div id="linkInfo" class="mut"></div>
+ <div id="list" style="margin-top:10px"></div>
+ <div class="row"><button class="cta" id="bAdd">＋ Thêm máy Windows</button><button class="ghost" id="bReload">↻ Làm mới</button></div>
+</div>
+
+<div class="card"><h2>Mac này</h2>
+ <div class="tools" id="tools"></div>
+ <details style="margin-top:10px"><summary class="mut">Nhật ký cài đặt</summary><pre id="log"></pre></details>
+ <details style="margin-top:6px"><summary class="mut">Màn hình khoá và chế độ tắt màn hình riêng</summary><ul class="mut">
+  <li>Máy Windows đang khoá: cứ bấm Kết nối, gõ mật khẩu Windows ngay trên màn hình đăng nhập. Cần thì bấm Ctrl+Alt+Del trên thanh công cụ RustDesk.</li>
+  <li>Tắt màn hình riêng: khi đang kết nối, mở menu màn hình trên thanh công cụ RustDesk, chọn <b>Privacy mode</b>. Màn hình thật của máy Windows tối đen, Mac vẫn thấy và thao tác.</li>
+  <li>Lần đầu RustDesk hỏi mật khẩu đã đặt lúc cài trên Windows: tick <b>Remember password</b> để lần sau bấm là vào.</li></ul></details>
+</div>
+
+<dialog id="dAdd"><form method="dialog" id="fAdd">
+ <h3 style="margin-top:0">Thêm máy Windows</h3>
+ <label>Tên máy<input id="aName" required maxlength="80" placeholder="Ví dụ: PC văn phòng"></label>
+ <label>Cách nối<select id="aMode"><option value="tailscale">Tailscale (khuyên dùng, không cần server)</option><option value="server">Server RustDesk tự host (VPS)</option></select></label>
+ <div id="aSrv" hidden><label>Địa chỉ server<input id="aHost" placeholder="remote.socin.org"></label><label>Key server<input id="aKey" placeholder="Nội dung file id_ed25519.pub" autocomplete="off"></label></div>
+ <div class="row"><button class="cta" value="ok" id="bAddOk">Thêm và tạo bộ cài</button><button class="ghost" value="cancel" formnovalidate>Huỷ</button></div>
+</form></dialog>
+
+<dialog id="dInst"><div id="instBody"></div><div class="row"><button class="ghost" onclick="this.closest('dialog').close()">Đóng</button></div></dialog>
+<div id="msg" hidden></div>
+<script>
+const $=id=>document.getElementById(id),E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const say=(m,b)=>{const x=$('msg');x.textContent=m;x.className=b?'err':'';x.hidden=false;clearTimeout(say.t);say.t=setTimeout(()=>x.hidden=true,6500)};
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});const d=await r.json();if(!r.ok||d.ok===false)throw new Error(d.error||'Lỗi');return d};
+const ST={online:['ok','● Sẵn sàng'],service_down:['wn','● Dịch vụ RustDesk trên máy đang tắt'],offline:['err','○ Mất liên lạc'],pending:['mut','○ Chưa cài'],uninstalled:['mut','○ Đã gỡ']};
+const ago=d=>{if(!d)return'';const s=Math.round((Date.now()-new Date(d))/1000);return s<60?s+' giây trước':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':Math.floor(s/86400)+' ngày trước'};
+let S=null;
+function download(f){const u=URL.createObjectURL(new Blob([f.content],{type:'application/octet-stream'}));const a=document.createElement('a');a.href=u;a.download=f.filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+function showInstaller(name,r){
+ $('instBody').innerHTML=`<h3 style="margin-top:0">Cài lên máy Windows: ${E(name)}</h3>
+  <div class="row"><button class="cta" id="bDl">⬇ Tải bộ cài cho Windows</button>${r.saved?'<button class="ghost" id="bRev">Mở trong Finder</button>':''}</div>
+  ${r.saved?`<div class="mut" style="font-size:12.5px">Đã lưu sẵn vào Kho file: ${E(r.saved)}</div>`:''}
+  <ol><li>Chép file sang máy Windows (AirDrop không được thì dùng USB, Zalo, email…), rồi <b>bấm đúp</b> vào file.</li>
+  <li>Windows hỏi quyền thì bấm <b>Yes</b>. Nếu hiện cảnh báo bảo mật, bấm <b>Run</b> (hoặc More info → Run anyway).</li>
+  <li>Khi trình duyệt mở trang Tailscale: đăng nhập <b>cùng tài khoản</b> với Mac này. Cửa sổ đặt mật khẩu: nhập 2 lần rồi bấm Cài đặt.</li>
+  <li>Hiện "Cài đặt xong" là xong. Máy sẽ hiện "Sẵn sàng" ở đây, bấm <b>Kết nối</b>.</li></ol>
+  <p class="wn">Bộ cài chứa khoá riêng của máy, dùng được trong ${r.install_ttl_h} giờ. Đừng gửi cho người khác.</p>
+  <details><summary class="mut">Cách khác: lệnh PowerShell (Run as Administrator)</summary><pre id="cmd"></pre></details>`;
+ $('cmd').textContent=r.install_command;$('bDl').onclick=()=>{download(r.installer);say('Đã tải '+r.installer.filename)};
+ if($('bRev'))$('bRev').onclick=()=>api('/api/remote/reveal',{path:r.saved}).catch(e=>say(e.message,1));
+ $('dInst').showModal();
+}
+function renderTools(){
+ const t=S.tools,j=S.job,busy=j&&j.running;
+ const ts=t.tailscale;const tsTxt=!ts.installed?'<span class="err">Chưa cài</span>':ts.state==='Running'?`<span class="ok">✓ Đang chạy</span> <span class="mut">${E(ts.ip)}</span>`:`<span class="wn">Đã cài, chưa đăng nhập/đang tắt</span>`;
+ $('tools').innerHTML=`<div class="tool"><b>RustDesk</b><div>${t.rustdesk?'<span class="ok">✓ Đã cài</span>':'<span class="err">Chưa cài</span>'}</div><div class="row">${t.rustdesk?'<button class="ghost s" data-open="rustdesk">Mở RustDesk</button>':`<button class="s" data-setup="rustdesk" ${busy?'disabled':''}>Cài RustDesk</button>`}</div></div>
+  <div class="tool"><b>Tailscale</b><div>${tsTxt}</div><div class="row">${ts.installed?'<button class="ghost s" data-open="tailscale">Mở Tailscale</button>':`<button class="s" data-setup="tailscale" ${busy?'disabled':''}>Cài Tailscale</button>`}</div><div class="mut" style="font-size:12px">Đăng nhập cùng tài khoản với máy Windows.</div></div>
+  ${busy?`<div class="tool"><b>Đang cài ${E(j.what)}…</b><div class="mut">Xem nhật ký bên dưới.</div></div>`:j&&j.ok===false?`<div class="tool"><b class="err">Cài lỗi</b><div class="mut">${E(j.error)}</div></div>`:''}
+  ${!t.brew?'<div class="tool"><b>Homebrew</b><div class="mut">Chưa có: cài ở brew.sh, hoặc tải RustDesk ở rustdesk.com và Tailscale ở App Store.</div></div>':''}`;
+ document.querySelectorAll('[data-setup]').forEach(b=>b.onclick=async()=>{try{await api('/api/remote/setup',{what:b.dataset.setup});say('Đang cài, có thể Mac hỏi mật khẩu máy.');refresh()}catch(e){say(e.message,1)}});
+ document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>api('/api/remote/open-app',{app:b.dataset.open}).catch(e=>say(e.message,1)));
+}
+async function loadDevices(){
+ if(!S.link){$('linkInfo').innerHTML='<span class="err">Chưa liên kết Socin.</span> Mở <b>S Creator → Kết nối</b>, nhập địa chỉ Socin và khoá S Creator của admin hoặc chủ doanh nghiệp. S Remote dùng chung kết nối đó.';$('list').innerHTML='';$('bAdd').disabled=true;return}
+ $('bAdd').disabled=false;$('linkInfo').innerHTML='🔗 Theo tài khoản Socin: '+E(S.link.baseUrl)+' · danh sách giống menu <b>Điều khiển từ xa</b> trong admin.';
+ try{const d=await api('/api/remote/devices');
+  $('list').innerHTML=d.devices.length?d.devices.map(x=>{const st=ST[x.status]||['',x.status];return`<div class="dev"><div><b>${E(x.name)}</b> <span class="${st[0]}">${st[1]}</span>
+   <div class="mut" style="font-size:12.5px">${[x.hostname,x.os].filter(Boolean).map(E).join(' · ')||'—'} · ${x.mode==='tailscale'?'Tailscale':'Server riêng'}${x.target?' · '+E(x.target):''}${x.last_seen_at?' · báo '+ago(x.last_seen_at):''}</div></div>
+   <div class="row" style="margin:0">${x.target?`<button class="cta go" data-go="${E(x.target)}">Kết nối</button>`:''}<button class="ghost s" data-inst="${E(x.id)}" data-name="${E(x.name)}" data-enr="${x.enrolled_at?1:''}">${x.status==='pending'?'Bộ cài':'Bộ cài mới'}</button></div></div>`}).join(''):'<div class="mut">Chưa có máy nào. Bấm "Thêm máy Windows".</div>';
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=async()=>{b.classList.add('busy');try{await api('/api/remote/connect',{target:b.dataset.go});say('Đang mở RustDesk…')}catch(e){say(e.message,1)}finally{b.classList.remove('busy')}});
+  document.querySelectorAll('[data-inst]').forEach(b=>b.onclick=async()=>{if(b.dataset.enr&&!confirm('Tạo bộ cài mới? Khoá cũ mất hiệu lực, máy ngừng báo trạng thái cho đến khi chạy bộ cài mới.'))return;try{showInstaller(b.dataset.name,await api('/api/remote/devices/'+b.dataset.inst+'/install',{}));loadDevices()}catch(e){say(e.message,1)}});
+ }catch(e){$('list').innerHTML='<div class="err">'+E(e.message)+'</div>'}
+}
+async function refresh(){try{S=await api('/api/remote/status');renderTools();const l=await api('/api/remote/logs');$('log').textContent=l.lines.map(x=>new Date(x.t).toLocaleTimeString('vi-VN')+'  '+x.s).join('\n')}catch(e){say(e.message,1)}}
+$('aMode').onchange=()=>{$('aSrv').hidden=$('aMode').value!=='server'};
+$('bAdd').onclick=()=>{$('fAdd').reset();$('aSrv').hidden=true;$('dAdd').showModal()};
+$('fAdd').onsubmit=async(ev)=>{if(ev.submitter&&ev.submitter.value!=='ok')return;ev.preventDefault();const b={name:$('aName').value.trim(),mode:$('aMode').value};if(b.mode==='server'){b.server_host=$('aHost').value.trim();b.server_key=$('aKey').value.trim()}
+ try{const r=await api('/api/remote/devices',b);$('dAdd').close();showInstaller(r.device.name,r);loadDevices()}catch(e){say(e.message,1)}};
+$('bReload').onclick=()=>{refresh().then(loadDevices)};
+refresh().then(loadDevices);setInterval(refresh,4000);setInterval(()=>{if(!document.querySelector('dialog[open]'))loadDevices()},30000);
+</script>
+</body></html>
