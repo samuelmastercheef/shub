@@ -5,13 +5,14 @@ Một giao diện tổng cho các tool: S Build Hub, S Test Hub, S VPS và các 
 ## Chạy
 1. Cần Node 18+ và git.
 2. `cp config.example.json config.json`, điền `githubToken` (hoặc chạy `gh auth login`).
-3. Bấm `start.command`, mở http://127.0.0.1:4777
+3. Bấm `start.command` (Mac) hoặc `start-windows.cmd` (Windows), mở http://127.0.0.1:4777
 
 ## Giao diện
 - Menu chính chỉ có **Tổng quan** và các **danh mục**; bấm vào danh mục mới hiện bảng công cụ thuộc nhóm đó (tên, mô tả, trạng thái, nút Mở). Đang ở trong công cụ thì có đường dẫn `Tổng quan › Danh mục` và nút quay lại.
   - 🚀 Dựng & kiểm thử: S Test Hub, S Build Hub
   - 🖥 Máy chủ & thiết bị: S VPS, S Remote, S Zoom worker
   - 🧠 Mã nguồn & AI: S GitHub, S Claude, Kho file
+  - 🎮 Game & 3D: S Game
   - 🎬 Nội dung: S Creator
   - 💰 Ví & thanh toán: S Xpub, Gom tiền BEP20
   - 💻 Ứng dụng trên Mac: các app `type: "launch"` (S Chat, S VPN, S Clean, Terminal Socin)
@@ -106,3 +107,19 @@ Nằm trong nhóm máy chủ, cạnh S Zoom worker. Dùng chung kết nối Soci
 - **Thêm máy Windows** → nhận **bộ cài một chạm** (file `.cmd`, lưu sẵn vào Kho file `downloads/remote/`). Chép sang máy Windows, bấm đúp, bấm Yes, đặt mật khẩu trong cửa sổ là xong.
 - Mục **Mac này**: kiểm tra và cài RustDesk, Tailscale bằng Homebrew.
 - Mật khẩu RustDesk không đi qua S Hub hay Socin. Test: `node remotetest.js`.
+
+## S Game (công cụ làm game, nhân vật 3D, video 3D chibi vinyl)
+
+Mở S Hub là tự kiểm tra máy (Mac hoặc Windows) có đủ công cụ theo dự án game cổ tích chưa: cửa sổ dòng lệnh in số công cụ thiếu, thẻ **Máy này** ở Tổng quan hiện "Công cụ làm game: Thiếu N". Vào **Game & 3D → S Game** để xem từng mục và bấm cài.
+
+| Nhóm | Công cụ | Mac | Windows |
+|---|---|---|---|
+| Nền tảng | Homebrew / winget, git, Python 3.11, uv | brew | winget |
+| Làm game | Godot 4; tuỳ chọn: export templates, JDK 17, Android SDK, Xcode | `--cask godot` | `GodotEngine.GodotEngine` |
+| Nhân vật 3D | Blender, Draw Things (Mac) / ComfyUI (Windows, cài tay), thư viện Python 3D (trimesh, pyrender, faster-whisper), AI dựng 3D Hunyuan3D-2mini + TripoSR | `--cask blender`, `--cask draw-things` | `BlenderFoundation.Blender` |
+| Video | ffmpeg, CIT Voice Studio (cài tay, kiểm tra cổng 8001) | `ffmpeg` | `Gyan.FFmpeg` |
+
+- **Cài tất cả còn thiếu** bỏ qua mục *tuỳ chọn* (xuất bản Android, iOS) và mục nặng (AI dựng 3D ~5 GB, Android SDK): các mục đó bấm cài riêng. Công cụ cần trước (uv, git) được tự cài trước.
+- Môi trường Python cài vào `~/SGame/py` và `~/SGame/ai3d` (đổi bằng `"sgame": { "dir": "..." }` trong config.json). Nếu `~/Downloads/ClaudeCode/thu-3d` đã có môi trường thì dùng luôn; Godot portable ở `~/Downloads/ClaudeCode/cong-cu/Godot.app` cũng được nhận (đổi bằng `"sgame": { "apps": ["..."] }`).
+- Homebrew cần cài tay một lần (S Game hiện lệnh để chép). Trên Windows, winget có sẵn trong Windows 10/11 (App Installer).
+- Thêm công cụ: thêm một mục vào danh sách trong hàm `tools()` của `sgame.js`. Test: `node sgametest.js` (brew, winget, uv đều giả).
