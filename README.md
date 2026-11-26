@@ -123,3 +123,17 @@ Mở S Hub là tự kiểm tra máy (Mac hoặc Windows) có đủ công cụ th
 - Môi trường Python cài vào `~/SGame/py` và `~/SGame/ai3d` (đổi bằng `"sgame": { "dir": "..." }` trong config.json). Nếu `~/Downloads/ClaudeCode/thu-3d` đã có môi trường thì dùng luôn; Godot portable ở `~/Downloads/ClaudeCode/cong-cu/Godot.app` cũng được nhận (đổi bằng `"sgame": { "apps": ["..."] }`).
 - Homebrew cần cài tay một lần (S Game hiện lệnh để chép). Trên Windows, winget có sẵn trong Windows 10/11 (App Installer).
 - Thêm công cụ: thêm một mục vào danh sách trong hàm `tools()` của `sgame.js`. Test: `node sgametest.js` (brew, winget, uv đều giả).
+
+### Đất cổ tích (trong S Game)
+
+Kho tài nguyên của dự án game cổ tích, gom dưới một giao diện: **Game & 3D → Đất cổ tích** (hoặc nút "Đất cổ tích" ở đầu trang S Game).
+S Hub đọc thẳng thư mục dự án trên máy (mặc định `~/Downloads/ClaudeCode`, đổi bằng `"sgame": { "cotichDir": "..." }`), không chép, không sửa file. Bấm **Quét lại** sau khi có file mới.
+
+- **Tổng quan**: % tiến độ 12 tướng, số thẻ, game, lịch đăng YouTube, video, file mới cập nhật.
+- **Tiến độ**: bảng từng tướng × 6 bước (Ảnh 2D, Bộ thẻ, Mô hình 3D, Gắn xương, Vào game Godot, Video giới thiệu), tính từ file có thật; ghi chú lấy từ `thu-3d/tien-do*.md`.
+- **Nhân vật**: thẻ 12 tướng; bấm vào xem mô hình 3D xoay được, hoạt cảnh (đứng, đi, chạy, đánh, xoay 360°), bộ thẻ, hệ, vai, nội tại và 3 chiêu (đọc từ `hero_data.gd` của Trăm Trứng).
+- **Game & giao diện**: Trăm Trứng Phiêu Lưu, Gióng: Giữ Làng, bộ hình Trăm Trứng; nút Chơi thử / Mở trong Godot (chạy file `.command` có sẵn), README, hình giao diện app.
+- **Kênh & content**: kênh @datcotich (bộ nhận diện, mô tả, danh sách phát, lịch đăng từ `lich-dang.csv` kèm trạng thái), các tập Làng cổ tích, bối cảnh, video giới thiệu, caption.
+- **Video**: mọi video đã xuất (bỏ bản nháp, bản cũ `.vN`), lọc theo loại. **Tài liệu**: mọi file `.md`.
+
+Thêm tướng hay game mới: sửa mảng `HEROES`, `STEPS`, `GAMES` đầu `cotich.js`. Test: `node cotichtest.js`.

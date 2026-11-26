@@ -327,6 +327,7 @@ const creatorHandle = require('./creator')({ WS, json, body });
 const zoomHandle = require('./zoom')({ WS, cfg, json, body });
 const remoteHandle = require('./remote')({ WS, json, body });
 const sgameHandle = require('./sgame')({ WS, cfg, json, body });
+const cotichHandle = require('./cotich')({ cfg, json });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -343,6 +344,7 @@ const server = http.createServer(async (req, res) => {
     if (await zoomHandle(req, res, u)) return;
     if (await remoteHandle(req, res, u)) return;
     if (await sgameHandle(req, res, u)) return;
+    if (await cotichHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!a.startCommand, ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });

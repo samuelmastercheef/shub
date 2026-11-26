@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Đất cổ tích</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css"><link rel="icon" href="/brand/icon.svg">
+<style>
+/* Màu Đất Cổ Tích: đỏ sơn mài, vàng đồng, nâu sơn mài, giấy dó */
+:root{--lac:#B3261E;--dong:#E8B33A;--nau:#3A1E16;--do:#F7ECD4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 'Be Vietnam Pro',-apple-system,sans-serif;padding:0 0 40px}
+.hero{background:linear-gradient(120deg,var(--nau),#5a2a1c 60%,var(--lac));color:var(--do);padding:18px 24px 0}
+.hero h1{margin:0;font-size:22px;letter-spacing:-.01em}.hero .sub{opacity:.8;font-size:13px}
+.hero .top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.hero .top .sp{flex:1}
+.hero button.ghost{color:var(--do);border-color:rgba(247,236,212,.35)}.hero button.ghost:hover{background:rgba(247,236,212,.12)}
+.tabs2{display:flex;gap:2px;margin-top:14px;overflow-x:auto}.tabs2 a{padding:9px 14px;color:var(--do);opacity:.75;text-decoration:none;border-radius:10px 10px 0 0;white-space:nowrap;cursor:pointer;font-weight:500}
+.tabs2 a.on{background:var(--bg);color:var(--tx);opacity:1}.tabs2 a:hover{opacity:1}
+.sw{display:flex;gap:6px;font-size:13px}.sw a{color:var(--do);opacity:.8;text-decoration:none;padding:3px 10px;border:1px solid rgba(247,236,212,.3);border-radius:99px}.sw a.on{background:var(--dong);color:var(--nau);opacity:1;border-color:var(--dong);font-weight:600}
+main{padding:18px 24px;max-width:1280px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 10px;display:flex;align-items:center;gap:8px}h2 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500}
+h3{margin:0 0 4px;font-size:16px}.mut{color:var(--mut)}.err{color:var(--bad)}[hidden]{display:none!important}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.kpi b{font-size:26px}.kpi.go{cursor:pointer}.kpi.go:hover{border-color:var(--acc)}
+.prog{height:8px;background:var(--track);border-radius:6px;overflow:hidden;margin-top:6px}.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--dong),var(--lac))}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}th{color:var(--mut);font-weight:600;font-size:12px;white-space:nowrap}
+td.c,th.c{text-align:center}.y{color:var(--ok);font-weight:700}.n{color:var(--line);font-weight:700}
+.hname{display:flex;gap:8px;align-items:center;cursor:pointer}.hname img{width:30px;height:30px;object-fit:contain;background:var(--in);border-radius:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.hc{border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden;cursor:pointer;transition:transform .12s,border-color .12s}.hc:hover{transform:translateY(-2px);border-color:var(--dong)}
+.hc .im{aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#fff6e0,#ead5aa);display:flex;align-items:center;justify-content:center}.hc .im img{max-width:88%;max-height:92%;object-fit:contain}
+@media (prefers-color-scheme:dark){.hc .im{background:radial-gradient(circle at 50% 40%,#4a2c1e,#1c1410)}}
+.hc .bd{padding:10px 12px}.hc .bd b{display:block}.tag{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:99px;background:var(--off-bg);color:var(--mut);margin:2px 3px 0 0}
+.he-Hỏa{background:#ffe1d3;color:#b5431a}.he-Mộc{background:#dff3d6;color:#2f7a22}.he-Kim{background:#fbf0cc;color:#8a6a0e}.he-Thủy{background:#d7ebfb;color:#20649a}.he-Thổ{background:#f3e3cc;color:#8a5a22}
+.dots{display:flex;gap:3px;margin-top:6px}.dots i{flex:1;height:5px;border-radius:3px;background:var(--track)}.dots i.y{background:var(--ok)}
+.gm{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px}@media(max-width:760px){.gm{grid-template-columns:1fr}}
+.gm .cv{border-radius:12px;overflow:hidden;background:var(--in);border:1px solid var(--line);aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}.gm .cv img{width:100%;height:100%;object-fit:contain}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:6px 0}.strip img{height:96px;border-radius:8px;border:1px solid var(--line);background:var(--in);cursor:zoom-in;flex:none;object-fit:contain;max-width:200px}
+.feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px 14px;font-size:13px;margin-top:8px}.feat div b{display:block;font-size:12.5px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}button{padding:7px 13px;cursor:pointer}button.s{padding:4px 10px;font-size:12.5px}
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.vc{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}.vc video{width:100%;aspect-ratio:16/10;background:#000;display:block}.vc .bd{padding:8px 10px;font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.chip{padding:4px 12px;border:1px solid var(--line);border-radius:99px;cursor:pointer;font-size:13px;background:var(--card)}.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.off{background:var(--off-bg);color:var(--mut)}.pill.wn{background:#fdf0d5;color:#8a5a00}
+.list .it{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}.list .it:last-child{border:0}.list .it .p{flex:1;word-break:break-all}.list a{cursor:pointer}
+.md{font-size:13.5px;max-height:70vh;overflow:auto}.md h1,.md h2,.md h3{text-transform:none;letter-spacing:0;color:var(--tx)}.md table{margin:8px 0}.md code{font-size:12px;padding:0 4px;border-radius:4px}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:18px;width:min(1000px,94vw);max-height:92vh;padding:0}dialog::backdrop{background:rgba(10,5,2,.6)}
+dialog .dh{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--card);z-index:2}dialog .dh h3{flex:1;margin:0}dialog .db{padding:16px 18px}
+.hd2{display:grid;grid-template-columns:minmax(240px,1fr) 1.3fr;gap:16px}@media(max-width:760px){.hd2{grid-template-columns:1fr}}
+.mv{position:relative;aspect-ratio:1;border-radius:14px;background:radial-gradient(circle at 50% 40%,#fff6e0,#ead5aa);overflow:hidden;display:flex;align-items:center;justify-content:center}.mv img{max-width:90%;max-height:90%}.mv model-viewer{position:absolute;inset:0;width:100%;height:100%}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}.steps span{font-size:12px;padding:5px 8px;border-radius:8px;background:var(--off-bg);color:var(--mut)}.steps span.y{background:var(--ok-bg);color:var(--ok)}
+.sk{display:grid;gap:4px;margin-top:6px}.sk div{font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:8px}
+#zoom{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:50;cursor:zoom-out}#zoom img{max-width:94vw;max-height:94vh;border-radius:8px}
+.empty{padding:30px;text-align:center;color:var(--mut)}
+</style></head><body>
+<div class="hero"><div class="top"><div><h1>🏯 Đất cổ tích</h1><div class="sub" id="dir">Kho tài nguyên dự án game cổ tích</div></div><span class="sp"></span>
+ <div class="sw"><a href="/sgame.html">🧰 Công cụ làm game</a><a class="on">🏯 Đất cổ tích</a></div><button class="ghost s" id="bRe">↻ Quét lại</button></div>
+ <nav class="tabs2" id="tabs"></nav></div>
+<main id="main"><div class="empty">Đang quét thư mục dự án…</div></main>
+<dialog id="dlg"><div class="dh"><h3 id="dT"></h3><button class="ghost s" id="dX">Đóng</button></div><div class="db" id="dB"></div></dialog>
+
+<script>
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const F=p=>'/api/cotich/file?p='+encodeURIComponent(p);
+const TABS=[['tong','Tổng quan'],['tien','Tiến độ'],['nv','Nhân vật'],['game','Game & giao diện'],['kenh','Kênh & content'],['video','Video'],['tl','Tài liệu']];
+let D=null,tab=(location.hash.slice(1)||'tong'),vcat='';
+const ago=t=>{const s=(Date.now()-t)/1000;return s<3600?Math.max(1,Math.round(s/60))+' phút trước':s<86400?Math.round(s/3600)+' giờ trước':Math.round(s/86400)+' ngày trước'};
+const mb=n=>n>1e9?(n/1e9).toFixed(1)+' GB':(n/1e6).toFixed(1)+' MB';
+async function load(fresh){try{D=await fetch('/api/cotich/overview'+(fresh?'?fresh=1':'')).then(r=>r.json())}catch{D={ok:false,error:'Không gọi được S Hub'}}draw()}
+function draw(){
+ $('tabs').innerHTML=TABS.map(([k,n])=>`<a data-t="${k}" class="${tab===k?'on':''}">${n}</a>`).join('');
+ $('tabs').querySelectorAll('a').forEach(a=>a.onclick=()=>{tab=a.dataset.t;location.hash=tab;draw()});
+ if(!D.ok){$('main').innerHTML=`<div class="card"><h3>Chưa đọc được dự án</h3><p class="err">${esc(D.error)}</p><p class="mut">Thư mục đang tìm: <code>${esc(D.dir||'')}</code></p></div>`;return}
+ $('dir').textContent=`Đọc trực tiếp từ ${D.dir} · ${D.stats.files.toLocaleString('vi-VN')} file · quét ${ago(D.scannedAt)}`;
+ $('main').innerHTML=({tong,tien,nv,game,kenh,video,tl}[tab]||tong)();
+ bind()}
+function bind(){
+ document.querySelectorAll('[data-h]').forEach(e=>e.onclick=()=>heroDlg(e.dataset.h));
+ document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{tab=e.dataset.go;location.hash=tab;draw();scrollTo(0,0)});
+ document.querySelectorAll('[data-z]').forEach(e=>e.onclick=()=>zoom(e.dataset.z));
+ document.querySelectorAll('[data-md]').forEach(e=>e.onclick=()=>mdDlg(e.dataset.md));
+ document.querySelectorAll('[data-open]').forEach(e=>e.onclick=()=>openF(e.dataset.open,e.dataset.run));
+ document.querySelectorAll('[data-vc]').forEach(e=>e.onclick=()=>{vcat=e.dataset.vc;draw()})}
+async function openF(p,run){const r=await fetch('/api/cotich/open',{method:'POST',body:JSON.stringify({p,run:!!run})}).then(r=>r.json()).catch(()=>({error:'Lỗi'}));if(r.error)alert(r.error)}
+function zoom(p){const z=document.createElement('div');z.id='zoom';z.innerHTML=`<img src="${F(p)}">`;z.onclick=()=>z.remove();document.body.appendChild(z)}
+const dots=h=>`<div class="dots">${h.steps.map(s=>`<i class="${s.ok?'y':''}" title="${esc(s.name)}"></i>`).join('')}</div>`;
+const heTag=h=>h.he?`<span class="tag he-${esc(h.he)}">${esc(h.he)}</span>`:'';
+
+function tong(){
+ const s=D.stats,ch=D.channel;
+ return`<div class="kpis">
+  <div class="card kpi go" data-go="tien"><span class="mut">Tiến độ 12 tướng</span><b>${s.pct}%</b><div class="prog"><i style="width:${s.pct}%"></i></div></div>
+  <div class="card kpi go" data-go="nv"><span class="mut">Nhân vật</span><b>${s.heroes}</b><span class="mut">${s.cards} thẻ bài</span></div>
+  <div class="card kpi go" data-go="game"><span class="mut">Game</span><b>${s.games}</b></div>
+  <div class="card kpi go" data-go="kenh"><span class="mut">Lịch đăng YouTube</span><b>${s.scheduled}</b><span class="mut">${ch?ch.stats.posted+' đã đăng · '+ch.stats.scheduled+' đã hẹn':''}</span></div>
+  <div class="card kpi go" data-go="video"><span class="mut">Video</span><b>${s.videos}</b><span class="mut">${s.episodes} tập phim</span></div></div>
+ <div class="card"><h2>🧸 Nhân vật <a class="r lnk" data-go="nv">Xem tất cả ›</a></h2><div class="grid">${D.heroes.map(hcard).join('')}</div></div>
+ <div class="card"><h2>🎮 Game <a class="r lnk" data-go="game">Chi tiết ›</a></h2><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${D.games.map(g=>`<div class="hc" data-go="game"><div class="im" style="aspect-ratio:16/10">${g.cover?`<img src="${F(g.cover)}" loading="lazy">`:'🎮'}</div><div class="bd"><b>${esc(g.name)}</b><span class="mut">${esc(g.engine)} · ${esc(g.kind)}</span></div></div>`).join('')}</div></div>
+ <div class="card"><h2>🕒 Mới cập nhật</h2><div class="list">${D.recent.slice(0,10).map(r=>`<div class="it"><span class="p">${esc(r.p)}</span><span class="mut">${ago(r.mtime)}</span>${/\.md$/.test(r.p)?`<a class="lnk" data-md="${esc(r.p)}">Đọc</a>`:/\.(png|jpe?g|webp)$/i.test(r.p)?`<a class="lnk" data-z="${esc(r.p)}">Xem</a>`:''}</div>`).join('')}</div></div>`}
+function hcard(h){return`<div class="hc" data-h="${h.slug}"><div class="im">${h.img?`<img src="${F(h.img)}" loading="lazy" alt="">`:'🧸'}</div><div class="bd"><b>${esc(h.name)}</b>${heTag(h)}${h.vai?`<span class="tag">${esc(h.vai)}</span>`:''}${dots(h)}</div></div>`}
+
+function tien(){
+ const st=D.steps;
+ return`<div class="card"><h2>Tiến độ từng tướng <span class="r mut">Tính từ file có trong thư mục · ${D.stats.pct}% xong</span></h2>
+ <div style="overflow-x:auto"><table><tr><th>Tướng</th>${st.map(s=>`<th class="c">${esc(s.name)}</th>`).join('')}<th>Ghi chú tiến độ</th></tr>
+ ${D.heroes.map(h=>`<tr><td><span class="hname" data-h="${h.slug}">${h.img?`<img src="${F(h.img)}" loading="lazy">`:''}<b>${esc(h.name)}</b></span></td>${h.steps.map(s=>`<td class="c" title="${esc(s.path||'chưa có')}">${s.ok?`<span class="y">✓</span>${s.count?` <span class="mut">${s.count}</span>`:''}`:'<span class="n">○</span>'}</td>`).join('')}<td class="mut" style="min-width:220px">${esc(h.note)}</td></tr>`).join('')}
+ <tr><th>Xong</th>${st.map((s,i)=>`<th class="c">${D.heroes.filter(h=>h.steps[i].ok).length}/${D.heroes.length}</th>`).join('')}<th></th></tr></table></div></div>
+ <div class="card"><h2>File tiến độ</h2><div class="list">${D.docs.filter(d=>d.progress).map(d=>`<div class="it"><span class="p">${esc(d.p)}</span><span class="mut">${ago(d.mtime)}</span><a class="lnk" data-md="${esc(d.p)}">Đọc</a></div>`).join('')||'<div class="mut">Chưa có file tien-do*.md</div>'}</div></div>`}
+
+function nv(){return`<div class="grid">${D.heroes.map(hcard).join('')}</div><p class="mut" style="margin-top:12px">Bấm vào tướng để xem mô hình 3D xoay được, hoạt cảnh, bộ thẻ, chiêu thức trong Trăm Trứng.</p>`}
+let mvLoaded=false;
+function heroDlg(slug){
+ const h=D.heroes.find(x=>x.slug===slug);if(!h)return;
+ if(h.model&&!mvLoaded){mvLoaded=true;const s=document.createElement('script');s.type='module';s.src='https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js';document.head.appendChild(s)}
+ $('dT').innerHTML=`${esc(h.name)} ${heTag(h)} ${h.vai?`<span class="tag">${esc(h.vai)}</span>`:''}`;
+ $('dB').innerHTML=`<div class="hd2"><div><div class="mv">${h.img?`<img src="${F(h.img)}" alt="">`:''}${h.model?`<model-viewer src="${F(h.model)}" camera-controls auto-rotate shadow-intensity="1" exposure="1.1" alt="${esc(h.name)}"></model-viewer>`:''}</div>
+  <div class="mut" style="font-size:12px;margin-top:4px">${h.model?'Kéo để xoay mô hình 3D · '+esc(h.model):'Chưa có mô hình 3D'}</div></div>
+ <div><div class="steps">${h.steps.map(s=>`<span class="${s.ok?'y':''}">${s.ok?'✓':'○'} ${esc(s.name)}${s.count?' ('+s.count+')':''}</span>`).join('')}</div>
+  ${h.note?`<p class="mut" style="font-size:13px">📝 ${esc(h.note)}</p>`:''}
+  ${h.passive?`<h2 style="margin-top:12px">Nội tại</h2><div class="sk"><div><b>${esc(h.passive.ten)}</b> · ${esc(h.passive.mo_ta)}</div></div>`:''}
+  ${h.skills.length?`<h2 style="margin-top:12px">3 chiêu</h2><div class="sk">${h.skills.map(k=>`<div><b>${esc(k.ten)}</b> <span class="mut">· hồi ${k.cd} giây</span></div>`).join('')}</div>`:''}
+  <div class="btns">${h.sheet?`<button class="ghost s" data-z="${esc(h.sheet)}">Bảng xem nhân vật</button>`:''}${h.model?`<button class="ghost s" data-open="${esc(h.model)}">Mở file 3D trong Finder</button>`:''}</div></div></div>
+ ${h.clips.length?`<h2 style="margin-top:16px">Hoạt cảnh</h2><div class="vg">${h.clips.map(c=>`<div class="vc"><video src="${F(c.p)}" muted loop playsinline preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause()" controls></video><div class="bd">${esc({idle:'Đứng',walk:'Đi',run:'Chạy',attack:'Đánh','xoay-360':'Xoay 360°'}[c.act]||c.act)}</div></div>`).join('')}</div>`:''}
+ ${h.views.length?`<h2 style="margin-top:16px">Ảnh xem 3D</h2><div class="strip">${h.views.map(v=>`<img src="${F(v)}" data-z="${esc(v)}" loading="lazy">`).join('')}</div>`:''}
+ ${h.cards.length?`<h2 style="margin-top:16px">Bộ thẻ <span class="r mut">${h.cardCount} thẻ</span></h2><div class="strip">${h.cards.map(v=>`<img src="${F(v)}" data-z="${esc(v)}" loading="lazy" style="height:150px">`).join('')}</div>`:''}`;
+ $('dlg').showModal();bind()}
+
+function game(){return D.games.map(g=>`<div class="card"><div class="gm"><div class="cv">${g.cover?`<img src="${F(g.cover)}" data-z="${esc(g.cover)}" style="cursor:zoom-in">`:'<span style="font-size:48px">🎮</span>'}</div>
+ <div><h3>${esc(g.name)}</h3><div class="mut">${esc(g.engine)} · ${esc(g.kind)} · <code>${esc(g.dir)}</code></div><p>${esc(g.intro)}</p>
+ <div class="btns">${g.play?`<button class="cta s" data-open="${esc(g.play)}" data-run="1">▶ Chơi thử</button>`:''}${g.edit?`<button class="ghost s" data-open="${esc(g.edit)}" data-run="1">Mở trong Godot</button>`:''}${g.readme?`<button class="ghost s" data-md="${esc(g.readme)}">Đọc README</button>`:''}<button class="ghost s" data-open="${esc(g.readme||g.dir)}">Mở thư mục</button></div>
+ ${g.features.length?`<div class="feat">${g.features.slice(0,8).map(f=>`<div><b>${esc(f.k)}</b><span class="mut">${esc(f.v.length>140?f.v.slice(0,140)+'…':f.v)}</span></div>`).join('')}</div>`:''}</div></div>
+ ${g.ui.length?`<h2 style="margin-top:14px">Giao diện app game <span class="r mut">${g.ui.length} hình</span></h2><div class="strip">${g.ui.map(p=>`<img src="${F(p)}" data-z="${esc(p)}" loading="lazy">`).join('')}</div>`:''}</div>`).join('')||'<div class="empty">Không thấy thư mục game.</div>'}
+
+function kenh(){
+ const ch=D.channel,c=D.content;const ST={'da-dang':'<span class="pill ok">Đã đăng</span>','da-hen':'<span class="pill wn">Đã hẹn giờ</span>','chua-tai':'<span class="pill off">Chưa tải lên</span>'};
+ let h='';
+ if(ch)h+=`<div class="card"><h2>📺 Kênh YouTube ${esc(ch.handle)} ${ch.guide?`<a class="r lnk" data-md="${esc(ch.guide)}">Hướng dẫn kênh</a>`:''}</h2>
+  ${ch.brand.length?`<div class="strip">${ch.brand.map(p=>`<img src="${F(p)}" data-z="${esc(p)}" loading="lazy">`).join('')}</div>`:''}
+  <p style="white-space:pre-line;font-size:13px">${esc(ch.desc.slice(0,600))}${ch.desc.length>600?'…':''}</p>
+  <div>${ch.playlists.map(p=>`<span class="tag">▶ ${esc(p)}</span>`).join('')}</div>
+  <div class="kpis" style="margin-top:12px"><div class="card kpi"><span class="mut">Video trong lịch</span><b>${ch.stats.total}</b></div><div class="card kpi"><span class="mut">Đã đăng</span><b>${ch.stats.posted}</b></div><div class="card kpi"><span class="mut">Đã hẹn giờ</span><b>${ch.stats.scheduled}</b></div><div class="card kpi"><span class="mut">Có file trên máy</span><b>${ch.stats.withFile}</b></div></div>
+  <h2>Lịch đăng</h2><div style="overflow-x:auto;max-height:420px"><table><tr><th>#</th><th>Ngày</th><th>Danh sách phát</th><th>Tiêu đề</th><th>File</th><th>Trạng thái</th></tr>
+  ${ch.schedule.map(s=>`<tr><td>${esc(s.so)}</td><td style="white-space:nowrap">${esc(s.ngay.split('-').reverse().join('/'))} ${esc(s.gio)}</td><td class="mut">${esc(s.list)}</td><td>${esc(s.title)}</td><td class="c">${s.hasFile?'<span class="y">✓</span>':'<span class="n" title="Chưa có file trên máy">○</span>'}</td><td>${s.videoId?`<a href="https://youtu.be/${esc(s.videoId)}" target="_blank" rel="noopener">${ST[s.state]}</a>`:ST[s.state]}</td></tr>`).join('')}</table></div></div>`;
+ h+=`<div class="card"><h2>🎬 Làng cổ tích: các tập phim</h2>${c.episodes.map(e=>`<div style="margin-bottom:14px"><h3>${esc(e.name)}</h3><div class="vg">${e.video?`<div class="vc"><video src="${F(e.preview||e.video)}" controls preload="metadata"></video><div class="bd">Bản hoàn chỉnh <a class="lnk" data-open="${esc(e.video)}">Mở trong Finder</a></div></div>`:''}${e.parts.map(p=>`<div class="vc"><video src="${F(p)}" controls preload="metadata"></video><div class="bd">${esc(p.split('/').pop())}</div></div>`).join('')}</div>${e.stills.length?`<div class="strip">${e.stills.map(p=>`<img src="${F(p)}" data-z="${esc(p)}" loading="lazy">`).join('')}</div>`:''}</div>`).join('')||'<div class="mut">Chưa có tập nào.</div>'}
+  ${c.sets.length?`<h2 style="margin-top:8px">Bối cảnh dùng chung</h2><div class="strip">${c.sets.map(p=>`<img src="${F(p)}" data-z="${esc(p)}" loading="lazy">`).join('')}</div>`:''}</div>`;
+ if(c.intro)h+=`<div class="card"><h2>🌟 ${esc(c.intro.name)}</h2><div class="gm"><div>${c.intro.video?`<video src="${F(c.intro.video)}" controls preload="metadata" style="width:100%;border-radius:12px;background:#000;max-height:420px"></video>`:''}</div><div><div class="btns" style="margin-top:0"><button class="ghost s" data-md="${esc(c.intro.readme)}">Cách làm</button>${c.intro.caption?`<button class="ghost s" data-md="${esc(c.intro.caption)}">Tiêu đề, caption, hashtag</button>`:''}</div><div class="strip">${c.intro.stills.map(p=>`<img src="${F(p)}" data-z="${esc(p)}" loading="lazy">`).join('')}</div></div></div></div>`;
+ if(c.captions.length)h+=`<div class="card"><h2>✍️ Caption và hashtag</h2><div class="list">${c.captions.map(p=>`<div class="it"><span class="p">${esc(p)}</span><a class="lnk" data-md="${esc(p)}">Đọc</a></div>`).join('')}</div></div>`;
+ return h}
+
+function video(){
+ const cats=[...new Set(D.videos.map(v=>v.cat))];const list=D.videos.filter(v=>!vcat||v.cat===vcat);
+ return`<div class="chips"><span class="chip ${!vcat?'on':''}" data-vc="">Tất cả ${D.videos.length}</span>${cats.map(c=>`<span class="chip ${vcat===c?'on':''}" data-vc="${esc(c)}">${esc(c)} ${D.videos.filter(v=>v.cat===c).length}</span>`).join('')}</div>
+ <div class="vg">${list.slice(0,120).map(v=>`<div class="vc"><video src="${F(v.p)}" controls preload="none" poster=""></video><div class="bd"><b>${esc(v.name)}</b><div class="mut" style="font-size:12px">${esc(v.cat)} · ${mb(v.size)} · ${ago(v.mtime)} · <a class="lnk" data-open="${esc(v.p)}">Finder</a></div></div></div>`).join('')}</div>${list.length>120?`<p class="mut">Hiện 120/${list.length} video mới nhất.</p>`:''}`}
+
+function tl(){return`<div class="card"><h2>Tài liệu trong dự án <span class="r mut">${D.docs.length} file .md</span></h2><div class="list">${D.docs.map(d=>`<div class="it">${d.progress?'<span class="pill wn">Tiến độ</span>':''}<span class="p">${esc(d.p)}</span><span class="mut">${ago(d.mtime)}</span><a class="lnk" data-md="${esc(d.p)}">Đọc</a><a class="lnk" data-open="${esc(d.p)}">Finder</a></div>`).join('')}</div></div>`}
+
+// Markdown gọn: tiêu đề, bảng, danh sách, in đậm, code
+function md(t){
+ const lines=t.split('\n');let o='',inT=false,inC=false,inL=false;
+ const il=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+ for(const l of lines){
+  if(/^```/.test(l)){o+=inC?'</pre>':'<pre style="background:var(--in);padding:8px;border-radius:8px;overflow:auto">';inC=!inC;continue}
+  if(inC){o+=esc(l)+'\n';continue}
+  if(/^\|/.test(l)){if(/^\|[\s:|-]+\|$/.test(l))continue;const c=l.replace(/^\||\|$/g,'').split('|');o+=(inT?'':'<table>')+'<tr>'+c.map(x=>`<td>${il(x.trim())}</td>`).join('')+'</tr>';inT=true;continue}
+  if(inT){o+='</table>';inT=false}
+  if(/^\s*[-*] /.test(l)){o+=(inL?'':'<ul>')+`<li>${il(l.replace(/^\s*[-*] /,''))}</li>`;inL=true;continue}
+  if(inL){o+='</ul>';inL=false}
+  const h=l.match(/^(#{1,3}) (.*)/);if(h){o+=`<h${h[1].length+1}>${il(h[2])}</h${h[1].length+1}>`;continue}
+  o+=l.trim()?`<p>${il(l)}</p>`:''}
+ return o+(inT?'</table>':'')+(inL?'</ul>':'')}
+async function mdDlg(p){const t=await fetch(F(p)).then(r=>r.text()).catch(()=>'Không đọc được');$('dT').textContent=p;$('dB').innerHTML=`<div class="md">${md(t)}</div><div class="btns"><button class="ghost s" data-open="${esc(p)}">Mở trong Finder</button></div>`;$('dlg').showModal();bind()}
+
+$('dX').onclick=()=>$('dlg').close();$('dlg').addEventListener('close',()=>$('dB').querySelectorAll('video').forEach(v=>v.pause()));
+$('bRe').onclick=()=>load(true);
+window.addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(t&&t!==tab){tab=t;draw()}});
+load(false);
+</script></body></html>
