@@ -53,6 +53,28 @@ h2.sec:first-child{margin-top:0}h2.sec .r{margin-left:auto;text-transform:none;l
 .st{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:7px}
 .tool button{padding:6px 14px;font-size:13px}
 .others{display:flex;gap:8px;flex-wrap:wrap}.others .chip{cursor:pointer;padding:5px 12px;font-size:13px}.others .chip:hover{border-color:var(--acc)}
+/* Trang chủ: lối tắt + cấu hình */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+.qgrp{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:12px;box-shadow:var(--shadow)}
+.qh{font-size:12.5px;font-weight:600;color:var(--mut);margin:0 2px 8px;cursor:pointer;display:flex;gap:6px}.qh span{margin-left:auto}.qh:hover{color:var(--acc-t)}
+.qrow{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.qt{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:8px 4px;border-radius:var(--r1);cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s}
+.qt:hover{background:var(--hover);border-color:var(--line)}.qt .qe{font-size:22px;line-height:1.2}.qt b{font-size:12px;line-height:1.25;font-weight:600}.qt span{font-size:11px;color:var(--mut)}
+.cfgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.cfg{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:16px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px}
+.cfg .ch{display:flex;align-items:center;gap:11px}.cfg .ch>span:nth-child(2){flex:1;min-width:0}.cfg .ch b{display:block;font-size:15px}.cfg .ch .mut{display:block;font-size:12px}
+.cfg .ce{width:38px;height:38px;border-radius:11px;background:var(--hover);display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:2px 0}.kv span{color:var(--mut)}.kv b{font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.kv .path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;display:block;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.av{width:20px;height:20px;border-radius:50%}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:4px}.btns button{padding:6px 12px;font-size:12.5px}
+button.s{padding:5px 11px;font-size:12.5px}
+.lnk{color:var(--acc-t);cursor:pointer;text-decoration:none;font-size:12.5px}.lnk:hover{text-decoration:underline}
+.frm{display:flex;flex-direction:column;gap:9px}.frm label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--mut)}.frm input{padding:8px 10px;font-size:13.5px}
+.err{display:none;background:var(--bad-bg);color:var(--bad);border-radius:var(--r1);padding:7px 10px;font-size:12.5px}
+.pill.off{background:var(--off-bg);color:var(--mut)}
+.tks{display:flex;flex-wrap:wrap;gap:6px}.tk{font-size:12px;border-radius:99px;padding:2px 9px;background:var(--bad-bg);color:var(--bad)}.tk.ok{background:var(--ok-bg);color:var(--ok)}
+.mut code{font-size:11.5px;padding:1px 4px;border-radius:4px}
 /* Quy trình */
 .flow{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr;align-items:stretch}
 .arrow{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:20px}
@@ -67,6 +89,7 @@ h2.sec:first-child{margin-top:0}h2.sec .r{margin-left:auto;text-transform:none;l
 .pill{padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600}.pill.ok{background:var(--ok-bg);color:var(--ok)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
 .mut{color:var(--mut);font-size:12.5px}
 @media(max-width:900px){
+ .qrow{grid-template-columns:repeat(3,1fr)}
  body{grid-template-columns:1fr;grid-template-rows:auto 1fr}
  aside{flex-direction:row;align-items:center;gap:4px;padding:8px 10px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden}
  aside .brand{padding:0 8px 0 0}.brand small,.brand b{display:none}aside .search,aside .grp,aside #n_recent,aside .foot{display:none}
@@ -114,7 +137,7 @@ async function load(){
  try{apps=(await (await fetch('/api/apps')).json()).apps}catch{apps=[]}
  try{reports=(await (await fetch('/api/reports?all=1')).json()).reports}catch{reports=[]}
  try{servers=(await (await fetch('/api/vps/servers')).json()).servers||[]}catch{servers=[]}
- nav();render()}
+ nav();render();if(cur==='home')loadHome()}
 function render(){if(cur==='home')home();else if(cur.startsWith('c-'))catView(cur.slice(2))}
 function bindGo(root){root.querySelectorAll('[data-go]').forEach(n=>n.onclick=e=>{e.stopPropagation();go(n.dataset.go)})}
 function nav(){
@@ -132,32 +155,80 @@ function stateOf(a){
  if(a.type==='page')return'<i class="dot on"></i>Trang riêng';
  if(a.type==='launch')return'<i class="dot"></i>Mở app trên Mac';
  return a.online?'<i class="dot on"></i>Đang chạy':a.canStart?'<i class="dot"></i>Sẵn sàng khởi động':'<i class="dot off"></i>Chưa chạy'}
+// ---- Trang chủ: cấu hình chung + lối tắt nhanh + tổng quan ----
+let HS={cr:null,gh:null,env:null,zoom:null,acc:null,accErr:'',edit:false};
+const SOCIN_DEFAULT='https://app.socin.org';
+const SHORT={test:'Kiểm thử repo',build:'Dựng app',vps:'Triển khai VPS',remote:'Điều khiển Windows',zoom:'Zoom giữ phòng',github:'Repo GitHub',claude:'Workflow Claude',creator:'Tạo video',xpub:'Tạo xpub',sweep:'Gom tiền'};
+const jget=u=>fetch(u).then(r=>r.json()).catch(()=>null);
+async function loadHome(){
+ const [cr,gh,env,zoom]=await Promise.all([jget('/api/cr/settings'),jget('/api/gh/me'),jget('/api/env'),jget('/api/zoom/status')]);
+ HS.cr=cr&&cr.settings;HS.gh=gh;HS.env=env;HS.zoom=zoom;
+ if(HS.cr&&HS.cr.socin.hasToken&&HS.acc===null)await testSocin(true);
+ if(cur==='home')home()}
+async function testSocin(quiet){
+ HS.accErr='';try{const r=await fetch('/api/cr/socin/accounts').then(r=>r.json());if(r.ok)HS.acc=r.accounts||[];else{HS.acc=false;HS.accErr=r.error||'Không kết nối được'}}catch{HS.acc=false;HS.accErr='Không kết nối được'}
+ if(!quiet&&cur==='home')home()}
+async function saveSocin(body){
+ const r=await fetch('/api/cr/settings/save',{method:'POST',body:JSON.stringify(body)}).then(r=>r.json()).catch(()=>({error:'Không lưu được'}));
+ if(r.error||r.ok===false)return alertBox(r.error||'Không lưu được');
+ HS.cr=r.settings||HS.cr;HS.edit=false;HS.acc=null;await loadHome()}
+function alertBox(m){const e=$('s_err');if(e){e.textContent=m;e.style.display='block'}}
+function socinCard(){
+ const c=HS.cr;if(!c)return`<div class="cfg"><div class="ch"><span class="ce">🌐</span><b>Tài khoản Socin</b></div><p class="mut">Đang tải…</p></div>`;
+ const on=c.socin.hasToken&&c.socin.baseUrl,ok=on&&Array.isArray(HS.acc);
+ const st=!on?'<span class="pill off">Chưa kết nối</span>':ok?'<span class="pill ok">Đã kết nối</span>':HS.acc===false?'<span class="pill bad">Lỗi kết nối</span>':'<span class="pill off">Đang kiểm tra…</span>';
+ const form=`<div class="frm"><label>Địa chỉ Socin<input id="s_url" value="${esc(c.socin.baseUrl||SOCIN_DEFAULT)}" placeholder="${SOCIN_DEFAULT}"></label>
+  <label>Khoá S Creator ${c.socin.hasToken?'<span class="mut">(đã lưu, để trống nếu giữ nguyên)</span>':''}<input id="s_tok" type="password" placeholder="spcr_…" autocomplete="off"></label>
+  <div class="mut">Tạo khoá trong Socin: menu <b>Khoá S Creator</b> → Tạo khoá (tài khoản admin hoặc chủ doanh nghiệp). Khoá lưu trên Mac này (quyền 600), không gửi lại trình duyệt.</div>
+  <div class="err" id="s_err"></div>
+  <div class="btns"><button class="cta" id="s_save">Lưu và kiểm tra</button>${on?'<button class="ghost" id="s_cancel">Huỷ</button>':''}</div></div>`;
+ const info=`<div class="kv"><span>Địa chỉ</span><b>${esc((c.socin.baseUrl||'').replace(/^https?:\/\//,'')||'—')}</b></div>
+  <div class="kv"><span>Tài khoản MXH đã liên kết</span><b>${ok?HS.acc.length:'—'}</b></div>
+  ${HS.accErr?`<div class="err" style="display:block">${esc(HS.accErr)}</div>`:''}
+  <div class="btns"><button class="ghost s" id="s_edit">Đổi khoá</button><button class="ghost s" id="s_test">Kiểm tra lại</button>${c.socin.baseUrl?`<a class="lnk" href="${esc(c.socin.baseUrl)}" target="_blank" rel="noopener">Mở Socin ↗</a>`:''}<button class="ghost s" id="s_clr">Đăng xuất</button></div>`;
+ return`<div class="cfg wide"><div class="ch"><span class="ce">🌐</span><span><b>Tài khoản Socin</b><span class="mut">Dùng chung cho S Creator, S Zoom worker, S Remote</span></span>${st}</div>${on&&!HS.edit?info:form}</div>`}
+function ghCard(){
+ const g=HS.gh;const ok=g&&g.ok;
+ return`<div class="cfg"><div class="ch"><span class="ce">🐙</span><span><b>GitHub</b><span class="mut">S Test Hub, S Build Hub, S VPS, S GitHub</span></span>${ok?'<span class="pill ok">Đã kết nối</span>':'<span class="pill off">Chưa kết nối</span>'}</div>
+ ${ok?`<div class="kv"><span>Tài khoản</span><b>${g.avatar?`<img src="${esc(g.avatar)}" alt="" class="av">`:''}${esc(g.login)}</b></div><div class="kv"><span>Tổ chức</span><b>${(g.orgs||[]).length}</b></div><div class="btns"><button class="ghost s" data-go="github">Mở S GitHub</button></div>`
+ :`<p class="mut">${esc((g&&g.error)||'Đang tải…')}</p><div class="mut">Cách nhanh nhất: mở Terminal, chạy <code>gh auth login</code> rồi bấm Kiểm tra lại.</div><div class="btns"><button class="ghost s" id="g_test">Kiểm tra lại</button></div>`}</div>`}
+function macCard(){
+ const e=HS.env||{},t=(HS.cr&&HS.cr.tools)||{};const it=(n,v)=>`<span class="tk ${v?'ok':''}">${v?'✓':'✕'} ${n}</span>`;
+ return`<div class="cfg"><div class="ch"><span class="ce">💻</span><span><b>Máy này</b><span class="mut">Công cụ cần cho các tính năng</span></span></div>
+ <div class="tks">${it('Node '+(e.node||''),!!e.node)}${it('git',e.git)}${it('gh',e.gh)}${it('Playwright',e.playwright)}${it('ffmpeg',t.ffmpeg)}${it('Claude',t.claude)}</div>
+ <div class="kv"><span>Thư mục làm việc</span><b class="path" title="${esc(e.workspace||'')}">${esc((e.workspace||'—').replace(/^\/Users\/[^/]+/,'~'))}</b></div>
+ <div class="btns"><button class="ghost s" data-go="files">Mở Kho file</button></div></div>`}
+function svcCard(){
+ const z=HS.zoom;const zs=!z?'—':z.running?(z.health&&z.health.state==='error'?'<span class="pill bad">Lỗi</span>':'<span class="pill ok">Đang chạy</span>'):'<span class="pill off">Đang tắt</span>';
+ const b=A('build');
+ return`<div class="cfg"><div class="ch"><span class="ce">⚙️</span><span><b>Dịch vụ nền</b><span class="mut">Trạng thái chạy trên máy này</span></span></div>
+ <div class="kv"><span>🎥 S Zoom worker</span><b>${zs}</b></div>
+ <div class="kv"><span>🛠 S Build Hub</span><b>${b.id?(b.online?'<span class="pill ok">Đang chạy</span>':'<span class="pill off">Chưa chạy</span>'):'—'}</b></div>
+ <div class="kv"><span>🖥 Server VPS</span><b>${servers.length}</b></div>
+ <div class="btns"><button class="ghost s" data-go="zoom">Zoom worker</button><button class="ghost s" data-go="vps">S VPS</button></div></div>`}
 function home(){
  const last=reports[0];const fails=reports.filter(r=>r.failed).length;const rec=recent();
+ const tile=a=>`<div class="qt" data-go="${a.id}" title="${esc(a.desc||'')}"><span class="qe">${a.icon||'📦'}</span><b>${esc(SHORT[a.id]||a.name)}</b>${SHORT[a.id]&&SHORT[a.id]!==a.name?`<span>${esc(a.name)}</span>`:''}</div>`;
  $('home').innerHTML=`
- ${rec.length?`<h2 class="sec">Dùng gần đây</h2><div class="recent">${rec.slice(0,6).map(a=>`<span class="chip" data-go="${a.id}">${a.icon||'📦'} ${esc(a.name)}</span>`).join('')}</div>`:''}
- <h2 class="sec">Danh mục công cụ <span class="r mut">${apps.length} công cụ trong ${visibleCats().length} danh mục</span></h2>
- <div class="cats">${visibleCats().map(c=>{const t=catTools(c.id),r=running(t);return `<div class="cat" data-go="c-${c.id}">
-  <div class="hd"><span class="ce">${c.icon}</span><span><b>${esc(c.name)}</b><span class="mut">${t.length} công cụ${r?` · <i class="dot on"></i> ${r} đang chạy`:''}</span></span></div>
-  <p>${esc(c.desc)}</p><div class="ft">${t.slice(0,4).map(a=>`<span class="chip">${a.icon||'📦'} ${esc(a.name)}</span>`).join('')}${t.length>4?`<span class="chip">+${t.length-4}</span>`:''}</div></div>`}).join('')}</div>
- <h2 class="sec">Quy trình phát hành</h2>
- <div class="flow">
-  <div class="step"><div class="hd"><span class="num">1</span>Kiểm thử</div><p>${last?`Lần gần nhất: <span class="pill ${last.failed?'bad':'ok'}">${last.failed?last.failed+' lỗi':'đạt'}</span> ${esc(last.repo)}`:'Chưa có lần chạy nào'}</p><button class="cta" data-go="test">Mở S Test Hub</button></div>
-  <div class="arrow">›</div>
-  <div class="step"><div class="hd"><span class="num">2</span>Dựng app</div><p class="st">${stateOf(A('build'))}</p><button class="cta" data-go="build">Mở S Build Hub</button></div>
-  <div class="arrow">›</div>
-  <div class="step"><div class="hd"><span class="num">3</span>Triển khai</div><p class="st">${servers.length?`<i class="dot on"></i>${servers.length} server đã thêm`:'<i class="dot"></i>Chưa thêm server'}</p><button class="cta" data-go="vps">Mở S VPS</button></div>
- </div>
- <h2 class="sec">Trạng thái nhanh</h2>
+ <h2 class="sec">Lối tắt nhanh ${rec.length?`<span class="r mut">Gần đây: ${rec.slice(0,4).map(a=>`<a class="lnk" data-go="${a.id}">${a.icon||''} ${esc(a.name)}</a>`).join(' · ')}</span>`:''}</h2>
+ <div class="qgrid">${visibleCats().map(c=>`<div class="qgrp"><div class="qh" data-go="c-${c.id}">${c.icon} ${esc(c.name)} <span>›</span></div><div class="qrow">${catTools(c.id).map(tile).join('')}</div></div>`).join('')}</div>
+ <h2 class="sec">Kết nối &amp; cấu hình chung</h2>
+ <div class="cfgs">${socinCard()}${ghCard()}${macCard()}${svcCard()}</div>
+ <h2 class="sec">Tổng quan</h2>
  <div class="kpis">
-  <div class="kpi"><span>Lần kiểm thử gần đây</span><b>${reports.length}</b></div>
+  <div class="kpi"><span>Kiểm thử gần đây</span><b>${reports.length}</b></div>
   <div class="kpi"><span>Có lỗi cần xem</span><b style="color:${fails?'var(--bad)':'var(--ok)'}">${fails}</b></div>
   <div class="kpi"><span>Server VPS</span><b>${servers.length}</b></div>
-  <div class="kpi"><span>App ngoài đang chạy</span><b>${running(apps)}/${apps.filter(a=>a.type==='web').length}</b></div>
+  <div class="kpi"><span>Tài khoản MXH trên Socin</span><b>${Array.isArray(HS.acc)?HS.acc.length:'—'}</b></div>
  </div>
- <h2 class="sec">Kiểm thử gần đây</h2>
- <div class="list">${reports.slice(0,5).map(p=>`<div class="row"><span><b>${esc(p.repo)}</b></span><span><span class="pill ${p.failed?'bad':'ok'}">${p.failed?p.failed+' lỗi':'đạt'}</span> <span class="mut">${new Date(p.at).toLocaleString('vi-VN')}</span></span></div>`).join('')||'<div class="row mut">Chưa có lần chạy nào. Mở S Test Hub để kiểm thử repo đầu tiên.</div>'}</div>`;
- bindGo($('home'))}
+ <div class="list" style="margin-top:14px"><div class="row"><b>Kiểm thử gần đây</b><a class="lnk" data-go="test">Mở S Test Hub ›</a></div>${reports.slice(0,5).map(p=>`<div class="row"><span>${esc(p.repo)}</span><span><span class="pill ${p.failed?'bad':'ok'}">${p.failed?p.failed+' lỗi':'đạt'}</span> <span class="mut">${new Date(p.at).toLocaleString('vi-VN')}</span></span></div>`).join('')||'<div class="row mut">Chưa có lần chạy nào.</div>'}</div>`;
+ bindGo($('home'));
+ const on=(id,f)=>{const e=$(id);if(e)e.onclick=f};
+ on('s_save',()=>{const url=$('s_url').value.trim(),tok=$('s_tok').value.trim();if(!url)return alertBox('Nhập địa chỉ Socin');if(!tok&&!(HS.cr&&HS.cr.socin.hasToken))return alertBox('Dán khoá S Creator');saveSocin({socinBaseUrl:url,socinToken:tok||undefined})});
+ on('s_cancel',()=>{HS.edit=false;home()});on('s_edit',()=>{HS.edit=true;home()});
+ on('s_test',async()=>{HS.acc=null;home();await testSocin()});
+ on('s_clr',()=>{if(confirm('Xoá khoá Socin trên máy này? S Creator, S Zoom worker, S Remote sẽ ngừng liên kết.'))saveSocin({clearToken:true})});
+ on('g_test',async()=>{HS.gh=await jget('/api/gh/me');home()})}
 function catView(cid){
  const c=CATS.find(x=>x.id===cid);if(!c)return;const t=catTools(cid);
  $('catv').innerHTML=`<div class="tools">${t.map(a=>`<div class="tool" data-go="${a.id}">
