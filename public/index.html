@@ -243,6 +243,13 @@ function catView(cid){
  <h2 class="sec">Danh mục khác</h2><div class="others">${visibleCats().filter(x=>x.id!==cid).map(x=>`<span class="chip" data-go="c-${x.id}">${x.icon} ${esc(x.name)} <span class="mut">${catTools(x.id).length}</span></span>`).join('')}</div>`;
  bindGo($('catv'))}
 function show(mode){for(const[k,el]of Object.entries({home:'home',cat:'catv',fr:'fr',msg:'msgv'}))$(el).style.display=mode===k?'block':'none';$('reload').style.display=$('pop').style.display=mode==='fr'?'':'none'}
+// S Build Hub chưa lên: chỉ chỗ cài (thư mục mã nguồn hoặc file .app), S Hub nhớ và lần sau tự khởi động.
+async function buildHubHelp(a){const b=await fetch('/api/buildhub').then(r=>r.json()).catch(()=>({}));
+ const tried=b.found?`<p>S Hub đã chạy lệnh khởi động từ <code>${esc(b.found.dir)}</code> nhưng sau 30 giây vẫn chưa thấy trang S Build Hub.</p>${b.tail?`<pre style="text-align:left;max-height:180px;overflow:auto;font-size:12px;white-space:pre-wrap">${esc(b.tail)}</pre>`:''}<p class="mut">Nhật ký đầy đủ: <code>${esc(b.log||'')}</code></p>`:'<p>S Hub chưa tìm thấy S Build Hub trên máy này.</p>';
+ say('🔌',esc(a.name)+' chưa chạy',`${tried}<p>Chọn chỗ cài S Build Hub (thư mục mã nguồn, hoặc file <code>.app</code>). S Hub sẽ nhớ và từ nay tự khởi động khi bạn bấm.</p>
+ <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><input id="bhdir" placeholder="~/SPrimeBuilds/build-hub" value="${esc(b.saved||'')}" style="min-width:280px;padding:8px 10px;border-radius:8px;border:1px solid var(--line,#ccc);background:transparent;color:inherit"><button class="cta" id="bhsave">Lưu và khởi động</button></div>
+ <p class="mut" id="bhmsg">Hoặc tự mở S Build Hub, đợi trang hiện lên rồi bấm lại.</p>`);
+ $('bhsave').onclick=async()=>{const r=await fetch('/api/buildhub',{method:'POST',body:JSON.stringify({dir:$('bhdir').value})}).then(r=>r.json());if(r.error){$('bhmsg').textContent='⚠️ '+r.error;return}await load();go('build')}}
 function say(icon,title,html){show('msg');$('msg').innerHTML=`<div class="big">${icon}</div><h3>${title}</h3><div>${html}</div>`}
 function header(title,sub,cat){
  $('ttl').textContent=title;$('sub').textContent=sub||'';
@@ -259,6 +266,7 @@ async function go(id){
  let u=a.online?a.url:null;
  if(!u&&a.canStart){say('⏳','Đang khởi động '+esc(a.name),'Vui lòng chờ vài giây…');await fetch('/api/launch',{method:'POST',body:JSON.stringify({id})});
   for(let i=0;i<20&&!u;i++){await new Promise(r=>setTimeout(r,1500));await load();const n=A(id);if(n.online)u=n.url}}
+ if(!u&&id==='build')return buildHubHelp(a);
  if(!u)return say('🔌',esc(a.name)+' chưa chạy','Hãy mở app này lên rồi bấm lại. Hoặc điền <code>url</code> và <code>startCommand</code> cho "'+esc(a.id)+'" trong config.json để S Hub tự khởi động.');
  show('fr');$('fr').src=u;$('pop').onclick=()=>window.open(u,'_blank');$('reload').onclick=()=>{$('fr').src=u}}
 // Tìm công cụ: gõ để lọc, ↑↓ chọn, Enter mở, phím / hoặc ⌘K để mở ô tìm

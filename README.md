@@ -23,7 +23,7 @@ Một giao diện tổng cho các tool: S Build Hub, S Test Hub, S VPS và các 
   - **Lối tắt nhanh**: mọi tính năng xếp theo danh mục, bấm là vào thẳng (ví dụ "Kiểm thử repo", "Điều khiển Windows", "Tạo xpub").
   - **Kết nối & cấu hình chung**: đăng nhập **Socin** ngay tại đây (địa chỉ + khoá S Creator, tạo ở Socin → menu Khoá S Creator), dùng chung cho S Creator, S Zoom worker, S Remote; trạng thái GitHub; công cụ cần có trên máy (Node, git, gh, Playwright, ffmpeg, Claude) và thư mục làm việc; dịch vụ nền (Zoom worker, Build Hub, số server VPS).
   - **Tổng quan**: số lần kiểm thử, lỗi, server VPS, tài khoản MXH trên Socin, kiểm thử gần đây.
-- S Build Hub: tự dò app đang chạy trên máy theo tiêu đề trang "Build Hub" và nhúng vào đây. Nếu không dò được, điền `url` và `startCommand` trong config.json.
+- S Build Hub: tự dò app đang chạy trên máy theo tiêu đề trang "Build Hub" và nhúng vào đây. Chưa chạy thì S Hub tự khởi động: nó tìm chỗ cài theo thứ tự thư mục đã chọn trên giao diện → `buildHubDir` trong config.json → các chỗ hay đặt (`~/SPrimeBuilds/build-hub`, `~/sprime-build-hub`, `~/sbuildapp`…) → `S Build Hub.app` trong Applications. Không tìm thấy thì màn S Build Hub có ô để dán thư mục (hoặc file `.app`), S Hub nhớ cho lần sau. Nhật ký khởi động ở `<workspace>/buildhub.log`. Vẫn có thể tự điền `url` và `startCommand` trong config.json. Test: `node buildhubtest.js`.
 - S Test Hub: tích hợp sẵn (lint, build, test, bảo mật, giao diện).
 - App khác: bấm là mở app trên máy bằng lệnh `command` trong config.json (sửa tên app cho đúng).
 
