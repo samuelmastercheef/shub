@@ -314,6 +314,38 @@ async function appStatus(a) {
   try { const c = new AbortController(); setTimeout(() => c.abort(), 1500); await fetch(url, { signal: c.signal }); return { online: true, url }; } catch { return { online: false, url }; }
 }
 
+// ---------- S Build Hub: tự tìm chỗ cài và lệnh khởi động ----------
+// Thứ tự: thư mục đã lưu từ giao diện → "buildHubDir" trong config.json → các chỗ hay đặt → app .app trong Applications.
+const BH_FILE = path.join(WS, 'buildhub.json');
+const BH_LOG = path.join(WS, 'buildhub.log');
+const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
+const isDir = (p) => { try { return fs.statSync(p).isDirectory(); } catch { return false; } };
+const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch { return false; } };
+const bhSaved = () => { try { return JSON.parse(fs.readFileSync(BH_FILE, 'utf8')).dir || ''; } catch { return ''; } };
+const BH_GUESS = ['~/SPrimeBuilds/build-hub', '~/SPrimeBuilds/sprime-build-hub', '~/SPrimeBuilds/buildhub', '~/SPrimeBuilds/sbuildapp', '~/sprime-build-hub', '~/build-hub', '~/buildhub', '~/sbuildapp', '~/SBuildHub', '~/Downloads/sprime-build-hub', '~/Downloads/build-hub', '~/Downloads/sbuildapp'];
+const BH_APPS = ['S Build Hub', 'SPrime Build Hub', 'Build Hub', 'SBuildHub'];
+function buildHubCmdForDir(d) {
+  if (/\.app\/?$/.test(d) && isDir(d)) return `${process.env.SHUB_OPEN_BIN || 'open'} ${shq(d)}`;
+  if (!isDir(d)) return '';
+  const cd = `cd ${shq(d)} && `, log = ` >> ${shq(BH_LOG)} 2>&1`;
+  let pkg = null; try { pkg = JSON.parse(fs.readFileSync(path.join(d, 'package.json'), 'utf8')); } catch {}
+  const deps = pkg && Object.keys({ ...pkg.dependencies }).length ? '([ -d node_modules ] || npm install) && ' : '';
+  if (pkg && pkg.scripts && pkg.scripts.start) return `${cd}${deps}npm start${log}`;
+  for (const f of ['server.js', 'index.js', 'app.js']) if (isFile(path.join(d, f))) return `${cd}${deps}${shq(process.execPath)} ${f}${log}`;
+  for (const f of ['start.command', 'start.sh']) if (isFile(path.join(d, f))) return `${cd}bash ${f}${log}`;
+  return '';
+}
+function findBuildHub() {
+  const dirs = [bhSaved(), cfg.buildHubDir, ...BH_GUESS].filter(Boolean).map((p) => path.resolve(expand(p)));
+  for (const d of dirs) { const cmd = buildHubCmdForDir(d); if (cmd) return { dir: d, cmd }; }
+  for (const n of BH_APPS) for (const base of ['/Applications', path.join(os.homedir(), 'Applications')]) {
+    const d = path.join(base, n + '.app'); const cmd = buildHubCmdForDir(d); if (cmd) return { dir: d, cmd };
+  }
+  return null;
+}
+// Lệnh khởi động thật của một app: lấy trong config, riêng "build" để trống thì tự tìm.
+const startCmdOf = (a) => (a.type === 'launch' ? a.command : a.startCommand) || (a.id === 'build' ? (findBuildHub() || {}).cmd || '' : '');
+
 // ---------- HTTP ----------
 const json = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const body = (req) => new Promise((r) => { let b = ''; req.on('data', (d) => (b += d)); req.on('end', () => { try { r(JSON.parse(b || '{}')); } catch { r({}); } }); });
@@ -346,16 +378,29 @@ const server = http.createServer(async (req, res) => {
     if (await sgameHandle(req, res, u)) return;
     if (await cotichHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
-      const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!a.startCommand, ...(await appStatus(a)) })));
+      const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!startCmdOf(a), ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });
     }
     if (u.pathname === '/api/launch' && req.method === 'POST') {
       const a = appById((await body(req)).id);
-      const cmd = a && (a.type === 'launch' ? a.command : a.startCommand);
+      const cmd = a && startCmdOf(a);
       if (!cmd) return json(res, 400, { error: 'App chưa cấu hình lệnh khởi động trong config.json' });
+      if (a.id === 'build') fs.appendFileSync(BH_LOG, `\n[S Hub] ${new Date().toISOString()} khởi động: ${cmd}\n`);
       spawn(cmd, { shell: true, detached: true, stdio: 'ignore' }).unref();
       scanCache.at = 0;
       return json(res, 200, { ok: true });
+    }
+    if (u.pathname === '/api/buildhub') {
+      if (req.method === 'POST') {
+        const raw = String((await body(req)).dir || '').trim();
+        if (!raw) { try { fs.unlinkSync(BH_FILE); } catch {} return json(res, 200, { ok: true, found: findBuildHub() }); }
+        const dir = path.resolve(expand(raw));
+        if (!buildHubCmdForDir(dir)) return json(res, 400, { error: 'Thư mục này không có package.json (có lệnh start), server.js, start.command, và cũng không phải file .app.' });
+        fs.writeFileSync(BH_FILE, JSON.stringify({ dir }, null, 2));
+        return json(res, 200, { ok: true, found: findBuildHub() });
+      }
+      let tail = ''; try { tail = fs.readFileSync(BH_LOG, 'utf8').slice(-1500); } catch {}
+      return json(res, 200, { saved: bhSaved(), found: findBuildHub(), log: BH_LOG, tail });
     }
     if (u.pathname === '/api/repos') {
       let repos = [], error = '';
