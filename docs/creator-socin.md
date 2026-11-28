@@ -1,6 +1,6 @@
 # S Creator ↔ Socin
 
-S Creator đẩy bài **nháp** sang Socin (social.sprime.net) qua khoá API riêng.
+S Creator đẩy bài **nháp** sang Socin (app.socin.org) qua khoá API riêng.
 
 1. Socin → Nội dung & Đăng bài → **Khoá S Creator** → Tạo khoá (hiện một lần).
 2. S Hub → S Creator → Kết nối: nhập địa chỉ Socin (https) và dán khoá.

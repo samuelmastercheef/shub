@@ -31,7 +31,7 @@ const str = (description, extra = {}) => ({ type: 'string', description, ...extr
 module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
   const DIR = path.join(WS, 'socin-studio');
   fs.mkdirSync(DIR, { recursive: true });
-  const F = { chats: path.join(DIR, 'chats.json'), projects: path.join(DIR, 'projects.json'), llm: path.join(DIR, 'llm.json'), mcp: path.join(DIR, 'mcp.json'), run: path.join(DIR, 'run.json'), creator: path.join(WS, 'creator', 'settings.json') };
+  const F = { chats: path.join(DIR, 'chats.json'), projects: path.join(DIR, 'projects.json'), llm: path.join(DIR, 'llm.json'), mcp: path.join(DIR, 'mcp.json'), run: path.join(DIR, 'run.json'), knowledge: path.join(DIR, 'knowledge.json'), creator: path.join(WS, 'creator', 'settings.json') };
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
   const wj = (f, v, mode) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, JSON.stringify(v), mode ? { mode } : undefined); if (mode) try { fs.chmodSync(f, mode); } catch {} };
   const doFetch = fetchImpl || fetch;
@@ -103,6 +103,11 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     { name: 'socin_accounts', title: 'Tài khoản MXH trên Socin', access: 'read', plugin: 'socin', description: 'Tài khoản TikTok, Threads của bạn trên Socin (để tạo bài nháp).', inputSchema: obj(), async run() { return short((await socinOk('GET', '/api/integration/creator/accounts')).accounts); } },
     { name: 'socin_create_draft', title: 'Tạo bài nháp trên Socin', access: 'files', plugin: 'socin', description: 'Tạo bài NHÁP TikTok hoặc Threads trên Socin (vẫn phải duyệt trong Socin trước khi đăng).', inputSchema: obj({ platform: str('tiktok hoặc threads', { enum: ['tiktok', 'threads'] }), account_id: str('id tài khoản (socin_accounts)'), title: str('tiêu đề'), caption: str('nội dung'), run_at: str('giờ đăng ISO 8601, tuỳ chọn') }, ['platform', 'account_id', 'title']),
       async run(a) { const r = await socinOk('POST', '/api/integration/creator/posts', { platform: a.platform, account_id: a.account_id, title: a.title, caption: a.caption, run_at: a.run_at, external_ref: 'chat:' + Date.now().toString(36) }); return `Đã tạo bài nháp (id ${r.id}, trạng thái ${r.status}). Vào Socin để gửi duyệt.`; } },
+    { name: 'knowledge_search', title: 'Tra kho tri thức Socin', access: 'read', plugin: 'socin', description: 'Tìm trong kho tri thức Socin (luật, skill S Draw, quy trình vận hành). Dùng khi cần biết luật (ví dụ Facebook, dữ liệu khách), cách làm một việc, hay thông số skill trước khi trả lời.', inputSchema: obj({ q: str('câu hỏi hoặc từ khoá') }, ['q']),
+      async run({ q }) { const r = await socinOk('GET', '/api/integration/creator/knowledge/search?app=studio&q=' + encodeURIComponent(String(q || '').slice(0, 300))); const hits = r.hits || []; return hits.length ? hits.map((h) => `[${h.doc_id} · ${h.status}]\n${h.text}`).join('\n\n').slice(0, 12000) : 'Không thấy đoạn nào khớp trong kho tri thức.'; } },
+    { name: 'knowledge_propose', title: 'Đề xuất tri thức cho Socin AI', access: 'files', plugin: 'socin', description: 'Gửi một luật, skill, quy trình hoặc ngữ cảnh mới vào hàng chờ của kho tri thức Socin. Admin Socin duyệt thì Socin mở PR lên GitHub. Chỉ ghi tri thức dùng lại được, viết lại bằng lời của mình; KHÔNG đưa khoá, mật khẩu, số điện thoại, email hay dữ liệu khách (máy chủ sẽ từ chối).',
+      inputSchema: obj({ type: str('rule, skill, playbook, reference hoặc context', { enum: ['rule', 'skill', 'playbook', 'reference', 'context'] }), title: str('tiêu đề ngắn'), summary: str('một câu tóm tắt'), body: str('nội dung Markdown, chia mục bằng ##'), domain: str('mảng: socin, facebook, sdraw, shub...'), note: str('lời nhắn cho người duyệt, tuỳ chọn') }, ['type', 'title', 'summary', 'body']),
+      async run(a) { const r = await socinOk('POST', '/api/integration/creator/knowledge/proposals', { ...a, source: 'studio', apps: ['all'] }); return `Đã gửi đề xuất "${a.title}" (id tài liệu ${r.doc_id}) vào hàng chờ. Admin Socin duyệt ở Cài đặt → Kho tri thức thì Socin mở PR lên GitHub.`; } },
     { name: 'socin_remote_devices', title: 'Máy từ xa trên Socin', access: 'read', plugin: 'socin', description: 'Danh sách máy điều khiển từ xa đăng ký trên Socin (admin/chủ doanh nghiệp).', inputSchema: obj(), async run() { return short((await socinOk('GET', '/api/integration/creator/remote-devices')).devices); } },
   ];
   const BY = new Map(TOOLS.map((t) => [t.name, t]));
@@ -142,7 +147,11 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     const l = socinLink(); if (!l) return { linked: false };
     try {
       const [me, ai] = await Promise.all([socin('GET', '/api/integration/creator/me', null, 8000), socin('GET', '/api/integration/creator/ai/info', null, 8000)]);
-      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : `Socin trả ${me.status}` };
+      if (me.status === 404) { // Socin chưa có /me (bản trước 0.165.0): khoá vẫn dùng được cho S Creator, Zoom, S Remote
+        const acc = await socin('GET', '/api/integration/creator/accounts', null, 8000).catch(() => null);
+        if (acc && acc.status === 200) return { linked: true, baseUrl: l.baseUrl, online: true, me: { name: 'Tài khoản Socin', tenant: '' }, ai: null, outdated: true, error: 'Đã kết nối. Máy chủ Socin chưa cập nhật bản 0.165.0 nên AI Socin chưa dùng được; trợ lý dùng model trên máy.' };
+      }
+      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : me.status === 404 ? `Không thấy Socin ở ${l.baseUrl}. Địa chỉ đúng là https://app.socin.org` : `Socin trả ${me.status}` };
     } catch (e) { return { linked: true, baseUrl: l.baseUrl, online: false, error: e.message }; }
   }
 
@@ -198,11 +207,24 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       } catch (e) { pulling = null; installJob = { running: false, ok: false, text: 'Tải model lỗi: ' + e.message }; }
     })();
   }
+  // Luật cốt lõi của kho tri thức Socin cho model trên máy: lấy khi đã đăng nhập Socin, lưu ở <workspace>/socin-studio/knowledge.json
+  // để dùng cả khi mất mạng; làm mới tối đa 6 giờ một lần. Lỗi mạng thì giữ bản cũ.
+  const KB_BRIEF_MAX = 6000;
+  async function knowledgeBrief() {
+    const cur = rj(F.knowledge, null);
+    const fresh = cur && typeof cur.at === 'number' && Date.now() - cur.at < 6 * 3600 * 1000;
+    if (!fresh && socinLink()) {
+      try { const r = await socin('GET', '/api/integration/creator/knowledge', null, 8000); if (r.status === 200 && r.data && typeof r.data.brief === 'string') { const v = { at: Date.now(), hash: String(r.data.hash || ''), brief: r.data.brief.slice(0, KB_BRIEF_MAX) }; wj(F.knowledge, v); return v.brief; } } catch {}
+    }
+    return cur && typeof cur.brief === 'string' ? cur.brief : '';
+  }
   async function llmChat(messages, tools, context) {
     const c = llmCfg();
     try {
       await startOllama();
-      const r = await doFetch(`${AI.OLLAMA_URL}/api/chat`, { method: 'POST', body: JSON.stringify(AI.ollamaBody(c.model, messages, tools, context)), signal: AbortSignal.timeout(180000) });
+      const brief = await knowledgeBrief();
+      const ctx = [brief ? 'Luật cốt lõi của Socin (phải theo):\n' + brief : '', context || ''].filter(Boolean).join('\n\n');
+      const r = await doFetch(`${AI.OLLAMA_URL}/api/chat`, { method: 'POST', body: JSON.stringify(AI.ollamaBody(c.model, messages, tools, ctx)), signal: AbortSignal.timeout(180000) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) return { ok: false, error: d.error || 'Ollama trả về ' + r.status };
       return { ok: true, content: AI.fromOllama(d.message, new Set(AI.localTools(tools).map((t) => t.name))) };
@@ -302,6 +324,25 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       if (r === 'tools') return json(res, 200, { tools: await allTools(true) }), true;
       if (r === 'call' && post) { const b = await bigBody(req); return json(res, 200, await callTool(String(b.name || ''), b.input || {}, { confirmed: !!b.confirmed, mode: ['read', 'edit', 'full'].includes(b.mode) ? b.mode : 'edit' })), true; }
       if (r === 'account') return json(res, 200, await account()), true;
+      // Đăng nhập bằng tên + mật khẩu Socin: máy chủ cấp khoá S Creator riêng cho máy này. Mật khẩu không lưu lại.
+      if (r === 'login' && post) {
+        const b = await body(req);
+        const baseUrl = String(b.baseUrl || '').trim().replace(/\/+$/, '');
+        if (!/^https:\/\/[\w.-]+(:\d+)?$/.test(baseUrl) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(baseUrl)) bad('Địa chỉ Socin phải là https://…');
+        const username = String(b.username || '').trim().slice(0, 100), password = String(b.password || '').slice(0, 200);
+        if (!username || !password) bad('Nhập tên đăng nhập và mật khẩu');
+        const device = (os.hostname() || 'máy tính').replace(/\.local$/i, '').slice(0, 40);
+        let x;
+        try { x = await doFetch(baseUrl + '/api/integration/creator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password, device }), signal: AbortSignal.timeout(20000) }); }
+        catch { bad(`Không kết nối được ${baseUrl}. Kiểm tra mạng hoặc địa chỉ (đúng là https://app.socin.org).`, 502); }
+        let d = {}; try { d = await x.json(); } catch {}
+        if (x.status === 404) bad('Máy chủ Socin chưa có đăng nhập bằng mật khẩu (cần bản 0.166.0). Tạm thời đăng nhập bằng khoá S Creator.', 409);
+        if (x.status !== 201 || !d.api_key) bad(d.message || `Socin trả ${x.status}`, x.status === 429 ? 429 : 401);
+        const cur = rj(F.creator, {});
+        wj(F.creator, { ...cur, socin: { ...(cur.socin || {}), baseUrl, token: d.api_key } }, 0o600);
+        catCache = null;
+        return json(res, 200, { ok: true, user: d.user || null }), true;
+      }
       if (r === 'plugins') return json(res, 200, { ...(await catalog()), servers: mcp.list() }), true;
       if (r === 'socin' && post) {
         const b = await bigBody(req);
@@ -341,7 +382,7 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       }
       if (r === 'gateway/claude-desktop' && post) { ensureToken(); const f = addToClaudeDesktop(); return json(res, 200, { ok: true, path: f, note: 'Khởi động lại Claude Desktop để thấy Socin.' }), true; }
       return json(res, 404, { error: 'not found' }), true;
-    } catch (e) { return json(res, e.code === 413 ? 413 : e.code === 409 ? 409 : 400, { error: String(e.message || e) }), true; }
+    } catch (e) { return json(res, [401, 409, 413, 429, 502].includes(e.code) ? e.code : 400, { error: String(e.message || e) }), true; }
   };
   handler.onListen = (port) => { try { wj(F.run, { url: `http://127.0.0.1:${port}/mcp`, pid: process.pid }, 0o600); } catch {} };
   handler.callTool = callTool; handler.allTools = allTools; handler.ask = ask; handler.register = register; handler.projects = projects; handler.rpc = rpc; handler.mcp = mcp;
