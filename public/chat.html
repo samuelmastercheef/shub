@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Socin Studio</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/brand/socin-icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/chat.css">
+</head><body>
+<aside class="rail">
+ <div class="brand"><img class="wm" src="/brand/socin-logo-dark.svg" alt="Socin"><span><b>Studio</b><small>Trợ lý Socin AI</small></span></div>
+ <button class="cta newchat" id="newChat">＋ Cuộc trò chuyện mới</button>
+ <nav class="railnav">
+  <a data-view="chat" class="on"><span class="i">💬</span>Trò chuyện</a>
+  <a data-view="projects"><span class="i">📁</span>Dự án</a>
+  <a href="/apps.html" id="toApps"><span class="i">🧭</span>Ứng dụng</a>
+  <a data-view="plugins"><span class="i">🧩</span>Plugin &amp; kết nối</a>
+ </nav>
+ <input id="chatSearch" class="rsearch" placeholder="Tìm cuộc trò chuyện" aria-label="Tìm cuộc trò chuyện">
+ <div class="rtitle" id="listTitle">Gần đây</div>
+ <ul class="chatlist" id="chatList"></ul>
+ <div class="acct" id="acct"></div>
+</aside>
+
+<main class="main">
+ <header class="top">
+  <div class="tt"><div class="crumb" id="crumb"></div><h1 id="title">Cuộc trò chuyện mới</h1></div>
+  <div class="topact"><span class="pill" id="engine" hidden></span><button class="ghost" id="ctxBtn" title="Ngữ cảnh của cuộc trò chuyện">Ngữ cảnh</button></div>
+ </header>
+
+ <section class="view" id="v-chat">
+  <div class="scroll" id="scroll"><div class="msgs" id="msgs"></div></div>
+  <div class="composer-wrap">
+   <div class="askcard" id="ask" hidden></div>
+   <div class="composer" id="composer">
+    <ul class="slash" id="slash" hidden></ul>
+    <div class="pop" id="toolPop" hidden></div>
+    <div class="pop modelpop" id="modelPop" hidden></div>
+    <div class="thumbs" id="thumbs"></div>
+    <textarea id="input" rows="1" placeholder="Nhắn cho Socin AI, hoặc gõ / để chọn lệnh"></textarea>
+    <div class="crow">
+     <label class="iconbtn" title="Đính kèm ảnh">＋<input type="file" id="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label>
+     <button class="ghost sm" id="toolsBtn">Lệnh</button>
+     <span class="mut sm">Quyền</span>
+     <select id="mode" class="sm"><option value="read">Chỉ xem</option><option value="edit">Xem và thao tác</option><option value="full">Đầy đủ</option></select>
+     <button class="ghost sm" id="modelBtn">Model: Tự động</button>
+     <span class="flex"></span>
+     <button id="send">Gửi</button>
+    </div>
+   </div>
+   <p class="foot mut" id="foot">Lệnh chạy ngay trên máy bạn. Enter gửi, Shift+Enter xuống dòng.</p>
+  </div>
+ </section>
+
+ <section class="view" id="v-projects" hidden></section>
+ <section class="view" id="v-plugins" hidden></section>
+</main>
+
+<aside class="side" id="side" hidden>
+ <header><b id="sideTitle">Ngữ cảnh</b><span class="flex"></span><button class="ghost sm" id="sideFull" hidden>Mở toàn màn</button><button class="ghost sm" id="sideClose">✕</button></header>
+ <div class="sidebody" id="sideBody"></div>
+ <iframe id="sideFrame" title="Ứng dụng" hidden></iframe>
+</aside>
+
+<dialog id="login">
+ <form method="dialog" class="dlg">
+  <h3>Đăng nhập tài khoản Socin</h3>
+  <p class="mut">Dùng chung với S Creator, Zoom worker, S Remote. Tạo khoá ở Socin → menu <b>Khoá S Creator</b>. Đăng nhập để dùng AI Socin (khoá Claude/Gemini/OpenAI do admin cài), kho plugin Socin và lệnh Socin. Không đăng nhập vẫn dùng offline được với model trên máy.</p>
+  <label>Địa chỉ Socin<input id="lgUrl" value="https://app.socin.org" autocomplete="off"></label>
+  <label>Khoá S Creator<input id="lgKey" type="password" placeholder="spcr_…" autocomplete="off"></label>
+  <p class="err" id="lgErr"></p>
+  <div class="row"><button class="ghost" value="offline">Dùng offline</button><span class="flex"></span><button class="cta" id="lgSave" value="save">Đăng nhập</button></div>
+ </form>
+</dialog>
+
+<script src="/aicore.js"></script>
+<script src="/chat.js"></script>
+</body></html>
