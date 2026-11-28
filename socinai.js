@@ -142,7 +142,11 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     const l = socinLink(); if (!l) return { linked: false };
     try {
       const [me, ai] = await Promise.all([socin('GET', '/api/integration/creator/me', null, 8000), socin('GET', '/api/integration/creator/ai/info', null, 8000)]);
-      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : `Socin trả ${me.status}` };
+      if (me.status === 404) { // Socin chưa có /me (bản trước 0.165.0): khoá vẫn dùng được cho S Creator, Zoom, S Remote
+        const acc = await socin('GET', '/api/integration/creator/accounts', null, 8000).catch(() => null);
+        if (acc && acc.status === 200) return { linked: true, baseUrl: l.baseUrl, online: true, me: { name: 'Tài khoản Socin', tenant: '' }, ai: null, outdated: true, error: 'Đã kết nối. Máy chủ Socin chưa cập nhật bản 0.165.0 nên AI Socin chưa dùng được; trợ lý dùng model trên máy.' };
+      }
+      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : me.status === 404 ? `Không thấy Socin ở ${l.baseUrl}. Địa chỉ đúng là https://app.socin.org` : `Socin trả ${me.status}` };
     } catch (e) { return { linked: true, baseUrl: l.baseUrl, online: false, error: e.message }; }
   }
 

@@ -12,6 +12,8 @@ module.exports = function init({ WS, json, body }) {
   const bad = (m, s = 400) => { const e = new Error(m); e.status = s; throw e; };
   const rj = (p, d) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return d; } };
   const wj = (p, o, mode) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p + '.tmp', JSON.stringify(o, null, 2), mode ? { mode } : undefined); fs.renameSync(p + '.tmp', p); };
+  // Tên miền cũ của Socin → app.socin.org (cùng máy chủ, khoá giữ nguyên)
+  { const s = rj(SETF, null); if (s && s.socin && /^https?:\/\/social\.sprime\.net\/?$/i.test(s.socin.baseUrl || '')) { s.socin.baseUrl = 'https://app.socin.org'; try { wj(SETF, s, 0o600); } catch {} } }
   const slug = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 36) || 'du-an';
   const pf = (id) => path.join(PROJ, id + '.json'); const outDir = (id) => path.join(OUT, id);
   const load = (id) => { if (!ID.test(id || '') || !fs.existsSync(pf(id))) bad('Không thấy dự án', 404); return rj(pf(id), null); };
