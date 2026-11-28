@@ -100,18 +100,23 @@ $('lgSave').onclick = async (e) => {
 };
 
 // ---------- điều hướng ----------
-function go(view) {
+function go(view, openId) {
+  if (S.view === 'flows' && view !== 'flows' && window.FlowUI && !window.FlowUI.leave()) return;
   S.view = view;
-  for (const v of ['chat', 'projects', 'plugins']) $('v-' + v).hidden = v !== view;
+  for (const v of ['chat', 'projects', 'plugins', 'flows', 'agents']) $('v-' + v).hidden = v !== view;
   document.querySelectorAll('.railnav a[data-view]').forEach((a) => a.classList.toggle('on', a.dataset.view === view));
   $('ctxBtn').hidden = view !== 'chat'; $('engine').hidden = view !== 'chat' || !S.engine;
   if (view === 'projects') renderProjects();
   if (view === 'plugins') renderPlugins();
   renderAll();
+  if ((view === 'flows' || view === 'agents') && window.FlowUI) {
+    loadTools().then(() => window.FlowUI.render(view, $('v-' + view), { api, esc, openId, tools: () => S.tools, loadTools, projects: () => S.projects, go, head: (t, crumb) => { $('title').textContent = t; $('crumb').innerHTML = crumb; } }));
+  }
 }
 function renderHead() {
   const c = current(); const p = project(c ? c.projectId : S.projectId);
   if (S.view === 'projects') { $('title').textContent = 'Dự án'; $('crumb').textContent = 'Ngữ cảnh, hướng dẫn và tài liệu cho trợ lý'; return; }
+  if (S.view === 'flows' || S.view === 'agents') return; // FlowUI tự đặt tiêu đề
   if (S.view === 'plugins') { $('title').textContent = 'Plugin & kết nối'; $('crumb').textContent = 'Kho plugin Socin, máy chủ MCP, cổng MCP cho AI khác'; return; }
   $('title').textContent = c ? c.title : 'Cuộc trò chuyện mới';
   $('crumb').innerHTML = p ? `<a data-p="${esc(p.id)}">${esc(p.icon)} ${esc(p.name)}</a>` : 'Socin Studio';
@@ -524,7 +529,7 @@ async function renderPlugins() {
   await Promise.all([loadAccount(), loadTools(), refreshLlm()]);
   renderAll();
   const h = location.hash.slice(1);
-  if (h === 'plugins' || h === 'projects') go(h);
+  if (['plugins', 'projects', 'flows', 'agents'].includes(h)) go(h);
   if (!S.account.linked && !store.get('sc.offlineOk', false)) { openLogin(); store.set('sc.offlineOk', true); }
   setInterval(() => { if (!S.busy) loadApps(); }, 20000);
 })();

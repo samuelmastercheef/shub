@@ -11,6 +11,13 @@ Mở S Hub là vào **Socin Studio**: trò chuyện với trợ lý **Socin AI**
 - **Cổng MCP của S Hub** (mặc định tắt): cho Claude Desktop, Cursor, Claude Code, Windsurf, VS Code gọi vào các ứng dụng Socin. HTTP `http://127.0.0.1:<cổng>/mcp` + `Authorization: Bearer`, hoặc stdio qua `mcp-stdio.js` (nút **Thêm vào Claude Desktop**, file cấu hình không chứa mã khoá). Ba mức quyền; lệnh ví (S Xpub, gom tiền) không bao giờ có trong sổ lệnh.
 - Dữ liệu ở `<workspace>/socin-studio/` (cuộc trò chuyện, dự án, cấu hình model, máy chủ MCP, cổng MCP). Mã: `socinai.js` (sổ lệnh, model, cổng MCP), `mcpclient.js`, `mcp-stdio.js`, `public/aicore.js` (lõi dùng chung), `public/chat.*`. Phía Socin: PR repo social (`POST /api/integration/creator/ai/agent`, `/plugins`, `/me`). Test: `node socinaitest.js`.
 
+### Flow và Agent (Socin Studio)
+- Menu **Flow**: thiết kế luồng công việc kéo thả, khối tròn nối đường chấm. Bước: Bắt đầu (chạy tay hoặc hằng ngày lúc HH:MM), Hỏi AI, Agent, Lệnh / app (mọi lệnh S Hub, Socin, MCP), Điều kiện (chứa chữ hoặc hỏi AI Có/Không), Chờ duyệt, Kết quả. Bấm ＋ cạnh một bước để thêm và nối bước tiếp. Biến `{{input}}` và `{{Tên bước}}`. Có 3 mẫu và nút "AI thiết kế" từ mô tả.
+- Menu **Agent**: tên, vai trò, hướng dẫn, model (Tự động / AI Socin / Trên máy), mức quyền, lệnh được phép, dự án làm ngữ cảnh, flow được chạy. "AI tạo agent" từ mô tả nhu cầu. Kéo agent và kết nối (S Hub, Socin, máy chủ MCP) từ cột trái lên flow; thả kết nối lên bước Agent để cho agent dùng.
+- An toàn: lệnh thay đổi lớn (`files`, `paid`) trong flow hay agent luôn dừng chờ bấm Cho phép; bước Chờ duyệt dừng chờ Duyệt / Từ chối. Quyền của flow/agent không vượt mức đã đặt.
+- Trợ lý chat (và AI khác qua cổng MCP) có thêm lệnh `list_flows`, `run_flow`, `list_agents`, `ask_agent`.
+- Dữ liệu ở `<workspace>/socin-studio/flows/`, `agents.json`, `runs.json`. Mã: `socinflow.js`, `public/flowcore.js`, `public/flowui.*`. Test: `node flowtest.js`.
+
 ## Chạy
 1. Cần Node 18+ và git.
 2. `cp config.example.json config.json`, điền `githubToken` (hoặc chạy `gh auth login`).

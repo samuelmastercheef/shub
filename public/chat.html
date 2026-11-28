@@ -4,6 +4,7 @@
 <link rel="icon" href="/brand/socin-icon.svg">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css">
 <link rel="stylesheet" href="/chat.css">
+<link rel="stylesheet" href="/flowui.css">
 </head><body>
 <aside class="rail">
  <div class="brand"><img class="wm" src="/brand/socin-logo-dark.svg" alt="Socin"><span><b>Studio</b><small>Trợ lý Socin AI</small></span></div>
@@ -11,6 +12,8 @@
  <nav class="railnav">
   <a data-view="chat" class="on"><span class="i">💬</span>Trò chuyện</a>
   <a data-view="projects"><span class="i">📁</span>Dự án</a>
+  <a data-view="flows"><span class="i">🔀</span>Flow</a>
+  <a data-view="agents"><span class="i">🤖</span>Agent</a>
   <a href="/apps.html" id="toApps"><span class="i">🧭</span>Ứng dụng</a>
   <a data-view="plugins"><span class="i">🧩</span>Plugin &amp; kết nối</a>
  </nav>
@@ -52,6 +55,8 @@
 
  <section class="view" id="v-projects" hidden></section>
  <section class="view" id="v-plugins" hidden></section>
+ <section class="view" id="v-flows" hidden></section>
+ <section class="view" id="v-agents" hidden></section>
 </main>
 
 <aside class="side" id="side" hidden>
@@ -72,5 +77,7 @@
 </dialog>
 
 <script src="/aicore.js"></script>
+<script src="/flowcore.js"></script>
+<script src="/flowui.js"></script>
 <script src="/chat.js"></script>
 </body></html>

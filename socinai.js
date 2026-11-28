@@ -209,6 +209,29 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     } catch (e) { return { ok: false, error: `Model trên máy chưa chạy được (${e.message}). Mở nút Model để cài Ollama và tải model.` }; }
   }
 
+  /** Hỏi model cho Flow và Agent (chạy ở server): AI Socin hoặc model trên máy theo pref (auto | socin | local).
+   *  Trả { ok, content, engine } hoặc { ok:false, error, noModel }. */
+  async function ask({ messages, tools = [], context = '', pref = 'auto' }) {
+    const p = pref === 'socin' || pref === 'local' ? pref : llmCfg().mode;
+    let why = '';
+    if (p !== 'local' && socinLink()) {
+      try {
+        const x = await socin('POST', '/api/integration/creator/ai/agent', { messages: AI.trimHistory(messages), tools, context: String(context).slice(0, AI.LIMITS.contextChars) }, 150000);
+        if (x.status === 200 && x.data && Array.isArray(x.data.content)) return { ok: true, content: x.data.content, engine: 'socin' };
+        why = 'AI Socin: ' + ((x.data && (x.data.message || x.data.error)) || 'HTTP ' + x.status);
+        if (!(x.data && x.data.fallback) && x.status !== 404 && x.status !== 501) return { ok: false, error: why };
+      } catch (e) { why = e.message; }
+    } else if (p === 'socin') return { ok: false, noModel: true, error: 'Chưa đăng nhập Socin nên chưa dùng được AI Socin.' };
+    if (p !== 'socin') {
+      if ((await listModels()) === null && !ollamaBin()) return { ok: false, noModel: true, error: (why ? why + '. ' : '') + 'Chưa có model: đăng nhập Socin hoặc cài model trên máy (nút Model ở khung chat).' };
+      const r = await llmChat(messages, tools, context);
+      return r.ok ? { ...r, engine: 'device' } : { ...r, noModel: true };
+    }
+    return { ok: false, error: why || 'Không hỏi được AI Socin' };
+  }
+  /** Thêm lệnh từ module khác (Flow, Agent) vào sổ lệnh chung. */
+  function register(defs) { for (const d of defs) { if (BY.has(d.name)) continue; TOOLS.push(d); BY.set(d.name, d); } }
+
   // ---------- cổng MCP của S Hub (cho Claude, ChatGPT, Cursor...) ----------
   const mcpCfg = () => { const c = rj(F.mcp, {}); return { enabled: c.enabled === true, token: typeof c.token === 'string' && c.token.length >= 24 ? c.token : '', mode: ['read', 'edit', 'full'].includes(c.mode) ? c.mode : 'edit' }; };
   const saveMcp = (c) => wj(F.mcp, c, 0o600);
@@ -321,7 +344,7 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     } catch (e) { return json(res, e.code === 413 ? 413 : e.code === 409 ? 409 : 400, { error: String(e.message || e) }), true; }
   };
   handler.onListen = (port) => { try { wj(F.run, { url: `http://127.0.0.1:${port}/mcp`, pid: process.pid }, 0o600); } catch {} };
-  handler.callTool = callTool; handler.allTools = allTools; handler.rpc = rpc; handler.mcp = mcp;
+  handler.callTool = callTool; handler.allTools = allTools; handler.ask = ask; handler.register = register; handler.projects = projects; handler.rpc = rpc; handler.mcp = mcp;
   return handler;
 };
 module.exports.PLUGINS_OFFLINE = PLUGINS_OFFLINE;
