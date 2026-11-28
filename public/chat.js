@@ -534,6 +534,7 @@ async function renderPlugins() {
   renderAll();
   const h = location.hash.slice(1);
   if (['plugins', 'projects', 'flows', 'agents'].includes(h)) go(h);
+  if (h === 'model') $('modelBtn').click();
   if (!S.account.linked && !store.get('sc.offlineOk', false)) { openLogin(); store.set('sc.offlineOk', true); }
   setInterval(() => { if (!S.busy) loadApps(); }, 20000);
 })();

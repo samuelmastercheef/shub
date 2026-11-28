@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8"><title>Socin Code</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/brand/socin-icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="/brand.css">
+<link rel="stylesheet" href="/chat.css">
+<link rel="stylesheet" href="/code.css">
+</head><body>
+<aside class="rail">
+ <div class="brand"><img class="wm" src="/brand/socin-logo-dark.svg" alt="Socin"><span><b>Code</b><small>Lập trình cùng Socin AI</small></span></div>
+ <button class="cta newchat" id="newSess">＋ Phiên lập trình mới</button>
+ <nav class="railnav">
+  <a href="/"><span class="i">💬</span>Trò chuyện</a>
+  <a class="on"><span class="i">⌨️</span>Socin Code</a>
+  <a href="/#projects"><span class="i">📁</span>Dự án</a>
+  <a href="/apps.html"><span class="i">🧭</span>Ứng dụng</a>
+ </nav>
+ <div class="rtitle">Thư mục dự án</div>
+ <button class="wsbtn" id="wsBtn"><span class="wsn" id="wsName">Chưa chọn</span><span class="wsp" id="wsPath">Bấm để chọn thư mục</span></button>
+ <div class="rtitle">Phiên gần đây</div>
+ <ul class="chatlist" id="sessList"></ul>
+ <div class="acct" id="acct"></div>
+</aside>
+
+<main class="main">
+ <header class="top">
+  <div class="tt"><div class="crumb" id="crumb"></div><h1 id="title">Phiên lập trình mới</h1></div>
+  <div class="topact"><span class="pill" id="engine" hidden></span>
+   <div class="seg" id="panelTabs"><button data-p="changes">Thay đổi <b id="chgN"></b></button><button data-p="plan">Kế hoạch <b id="todoN"></b></button><button data-p="files">File</button><button data-p="context">Ngữ cảnh</button></div>
+  </div>
+ </header>
+
+ <section class="view" id="v-pick" hidden></section>
+ <section class="view" id="v-code">
+  <div class="scroll" id="scroll"><div class="msgs" id="msgs"></div></div>
+  <div class="composer-wrap">
+   <div class="askcard code" id="ask" hidden></div>
+   <div class="composer" id="composer">
+    <ul class="slash" id="slash" hidden></ul>
+    <div class="pop modelpop" id="modelPop" hidden></div>
+    <div class="mentions" id="mentions"></div>
+    <textarea id="input" rows="1" placeholder="Giao việc cho Socin Code… (/ lệnh nhanh, @ chèn file, ! chạy lệnh)"></textarea>
+    <div class="crow">
+     <div class="seg mode" id="mode"><button data-m="plan" title="Chỉ đọc mã và lập kế hoạch">Kế hoạch</button><button data-m="ask" title="Sửa file và chạy lệnh đều hỏi trước">Hỏi trước</button><button data-m="edit" title="Tự sửa file (có diff, hoàn tác được), chạy lệnh vẫn hỏi">Tự sửa file</button></div>
+     <button class="ghost sm" id="modelBtn">Model: Tự động</button>
+     <span class="flex"></span>
+     <button id="send" class="cta">Gửi</button>
+    </div>
+   </div>
+   <p class="foot mut" id="foot">Agent chỉ làm việc trong thư mục dự án đã chọn. Enter gửi · Shift+Enter xuống dòng · Esc dừng.</p>
+  </div>
+ </section>
+</main>
+
+<aside class="side code" id="side" hidden>
+ <header><b id="sideTitle">Thay đổi</b><span class="flex"></span><button class="ghost sm" id="sideRefresh" title="Tải lại">↻</button><button class="ghost sm" id="sideClose">✕</button></header>
+ <div class="sidebody" id="sideBody"></div>
+</aside>
+
+<dialog id="pickDlg">
+ <div class="dlg wide">
+  <h3>Chọn thư mục dự án</h3>
+  <p class="mut">Socin Code chỉ đọc, sửa và chạy lệnh bên trong thư mục này.</p>
+  <div class="row"><input id="pkPath" placeholder="/Users/ban/Projects/app hoặc ~/Projects/app" style="flex:1"><button class="ghost sm" id="pkGo">Mở</button></div>
+  <div class="browse" id="pkList"></div>
+  <details><summary class="sm"><b>Clone repo từ GitHub</b></summary><div class="row" style="margin-top:8px"><input id="pkUrl" placeholder="https://github.com/owner/repo" style="flex:1"><button class="ghost sm" id="pkClone">Clone</button></div><div class="sm mut" id="pkRepos"></div></details>
+  <p class="err" id="pkErr"></p>
+  <div class="row"><button class="ghost" id="pkCancel">Huỷ</button><span class="flex"></span><button class="cta" id="pkUse">Dùng thư mục này</button></div>
+ </div>
+</dialog>
+
+<script src="/aicore.js"></script>
+<script src="/codecore.js"></script>
+<script src="/code.js"></script>
+</body></html>

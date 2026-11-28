@@ -9,6 +9,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const AI = require('./public/aicore.js');
+const CodeCore = require('./public/codecore.js');
 const mcpClients = require('./mcpclient.js');
 
 const PLUGINS_OFFLINE = [
@@ -218,13 +219,13 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     }
     return cur && typeof cur.brief === 'string' ? cur.brief : '';
   }
-  async function llmChat(messages, tools, context) {
+  async function llmChat(messages, tools, context, profile) {
     const c = llmCfg();
     try {
       await startOllama();
       const brief = await knowledgeBrief();
       const ctx = [brief ? 'Luật cốt lõi của Socin (phải theo):\n' + brief : '', context || ''].filter(Boolean).join('\n\n');
-      const r = await doFetch(`${AI.OLLAMA_URL}/api/chat`, { method: 'POST', body: JSON.stringify(AI.ollamaBody(c.model, messages, tools, ctx)), signal: AbortSignal.timeout(180000) });
+      const r = await doFetch(`${AI.OLLAMA_URL}/api/chat`, { method: 'POST', body: JSON.stringify(AI.ollamaBody(c.model, messages, tools, ctx, profile === 'code' ? CodeCore.CODE_SYSTEM : undefined)), signal: AbortSignal.timeout(180000) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) return { ok: false, error: d.error || 'Ollama trả về ' + r.status };
       return { ok: true, content: AI.fromOllama(d.message, new Set(AI.localTools(tools).map((t) => t.name))) };
@@ -364,7 +365,7 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       if (r === 'llm/install' && post) { installOllama(); return json(res, 200, await llmStatus()), true; }
       if (r === 'llm/start' && post) { await startOllama(); return json(res, 200, await llmStatus()), true; }
       if (r === 'llm/pull' && post) { const b = await body(req); await pull(AI.cleanLlmConfig({ model: b.model || llmCfg().model }).model); return json(res, 200, await llmStatus()), true; }
-      if (r === 'llm/chat' && post) { const b = await bigBody(req); return json(res, 200, await llmChat(b.messages || [], b.tools || [], String(b.context || ''))), true; }
+      if (r === 'llm/chat' && post) { const b = await bigBody(req); return json(res, 200, await llmChat(b.messages || [], b.tools || [], String(b.context || ''), b.profile === 'code' ? 'code' : '')), true; }
       // máy chủ MCP khác
       if (r === 'mcp/servers' && !post) return json(res, 200, { servers: mcp.list() }), true;
       if (r === 'mcp/servers' && post) { const b = await body(req); return json(res, 200, { server: mcp.save(b) }), true; }

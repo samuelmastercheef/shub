@@ -11,6 +11,18 @@ Mở S Hub là vào **Socin Studio**: trò chuyện với trợ lý **Socin AI**
 - **Cổng MCP của S Hub** (mặc định tắt): cho Claude Desktop, Cursor, Claude Code, Windsurf, VS Code gọi vào các ứng dụng Socin. HTTP `http://127.0.0.1:<cổng>/mcp` + `Authorization: Bearer`, hoặc stdio qua `mcp-stdio.js` (nút **Thêm vào Claude Desktop**, file cấu hình không chứa mã khoá). Ba mức quyền; lệnh ví (S Xpub, gom tiền) không bao giờ có trong sổ lệnh.
 - Dữ liệu ở `<workspace>/socin-studio/` (cuộc trò chuyện, dự án, cấu hình model, máy chủ MCP, cổng MCP). Mã: `socinai.js` (sổ lệnh, model, cổng MCP), `mcpclient.js`, `mcp-stdio.js`, `public/aicore.js` (lõi dùng chung), `public/chat.*`. Phía Socin: PR repo social (`POST /api/integration/creator/ai/agent`, `/plugins`, `/me`). Test: `node socinaitest.js`.
 
+## Socin Code (lập trình kiểu Claude Code)
+
+Mở ở thanh trái Socin Studio → **Socin Code** (`/code.html`). Chọn một thư mục dự án (hoặc clone repo GitHub), rồi giao việc bằng lời: agent đọc mã, tìm, sửa file, chạy lệnh terminal, dùng git, ghi kế hoạch.
+
+- Lệnh của agent: `list_files`, `read_file`, `search`, `edit_file`, `write_file`, `run_command`, `git_status`, `git_diff`, `git_log`, `git_commit`, `todo_write` (`socincode.js`).
+- Ba chế độ: **Kế hoạch** (chỉ đọc, đề xuất), **Hỏi trước** (mặc định: sửa file và chạy lệnh đều hiện diff/lệnh để duyệt), **Tự sửa file** (tự sửa, chạy lệnh vẫn hỏi). Lệnh chỉ đọc (`git status`, `ls`, `cat`...) tự chạy. Server kiểm tra quyền lần nữa, không tin trình duyệt.
+- Mỗi lần sửa có diff và nút **Hoàn tác**; bảng bên: Thay đổi (git diff), Kế hoạch, File, Ngữ cảnh.
+- An toàn: không ra ngoài thư mục dự án (kể cả qua symlink), không ghi vào `.git`, không đọc `.env`/khoá gửi cho AI, API chỉ nhận JSON từ trang local.
+- Ghi nhớ dự án: tự đọc `SOCIN.md` (hoặc `AGENTS.md`, `CLAUDE.md`); `/init` để agent tạo. Lệnh nhanh: `/explain`, `/review`, `/test`, `/commit`, `/clear`, `/diff`; `@file` chèn file; `!lệnh` chạy lệnh không cần model.
+- Model: dùng chung nút Model của Studio (AI Socin hoặc Ollama trên máy, lời nhắc riêng cho lập trình). Dữ liệu ở `<workspace>/socin-studio/code*.json`, bản lưu hoàn tác ở `code-snaps/`.
+- Test: `node codetest.js`.
+
 ### Flow và Agent (Socin Studio)
 - Menu **Flow**: thiết kế luồng công việc kéo thả, khối tròn nối đường chấm. Bước: Bắt đầu (chạy tay hoặc hằng ngày lúc HH:MM), Hỏi AI, Agent, Lệnh / app (mọi lệnh S Hub, Socin, MCP), Điều kiện (chứa chữ hoặc hỏi AI Có/Không), Chờ duyệt, Kết quả. Bấm ＋ cạnh một bước để thêm và nối bước tiếp. Biến `{{input}}` và `{{Tên bước}}`. Có 3 mẫu và nút "AI thiết kế" từ mô tả.
 - Menu **Agent**: tên, vai trò, hướng dẫn, model (Tự động / AI Socin / Trên máy), mức quyền, lệnh được phép, dự án làm ngữ cảnh, flow được chạy. "AI tạo agent" từ mô tả nhu cầu. Kéo agent và kết nối (S Hub, Socin, máy chủ MCP) từ cột trái lên flow; thả kết nối lên bước Agent để cho agent dùng.

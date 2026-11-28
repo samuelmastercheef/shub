@@ -1,0 +1,59 @@
+/* Socin Code: thêm cho màn lập trình (dùng chung chat.css của Socin Studio) */
+.mono,.diff,.term pre,.wsbtn .wsp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wsbtn{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;text-align:left;background:var(--rail-hi);color:var(--rail-tx);border:1px solid #2A4157;box-shadow:none;border-radius:10px;padding:8px 10px;cursor:pointer}
+.wsbtn .wsn{font-weight:600;font-size:13.5px}.wsbtn .wsp{font-size:11px;color:var(--rail-mut);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}.wsbtn .wsp.path{direction:rtl}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.seg button{background:transparent;color:var(--mut);box-shadow:none;border-radius:0;padding:5px 11px;font-size:12.5px;border-right:1px solid var(--line)}.seg button:last-child{border-right:0}
+.seg button.on{background:var(--mist);color:var(--acc-t);font-weight:600}.seg button b{font-weight:600;color:var(--acc-t)}
+.seg.mode button[data-m=plan].on{color:#6B4DD6}.seg.mode button[data-m=edit].on{color:var(--warn-ink);background:var(--warn-soft)}
+/* thẻ lệnh gọn */
+.op{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--mut);padding:2px 4px;cursor:pointer;border-radius:8px}
+.op:hover{background:var(--hover)}.op .dot{width:7px;height:7px;border-radius:50%;background:var(--mut);flex:none}.op.ok .dot{background:var(--ok)}.op.err .dot{background:var(--bad)}.op.run .dot{background:var(--sun);animation:pulse 1s infinite}
+.op b{color:var(--tx);font-weight:600}.op code{font-size:11.5px;background:none;border:0;padding:0;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.opout{margin:2px 0 4px 15px;max-height:260px;overflow:auto;background:var(--in);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11.5px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Menlo,monospace}
+/* diff */
+.fcard{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.fcard .fh{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--line);font-size:13px;background:var(--in)}
+.fcard .fh .fn{font-family:ui-monospace,Menlo,monospace;font-weight:600;font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.add{color:var(--ok);font-weight:600}.del{color:var(--bad);font-weight:600}
+.fcard.reverted{opacity:.6}.fcard.reverted .fn{text-decoration:line-through}
+.diff{font-size:12px;line-height:1.5;max-height:340px;overflow:auto;margin:0;padding:4px 0;background:var(--card)}
+.diff div{white-space:pre;padding:0 12px 0 0;display:flex}.diff i{font-style:normal;width:44px;flex:none;text-align:right;padding-right:10px;color:var(--mut);opacity:.7;user-select:none}
+.diff .a{background:#E3F6EC}.diff .d{background:#FDE8E7}.diff .h{color:var(--acc-t);background:var(--mist);padding-left:12px}
+@media (prefers-color-scheme:dark){.diff .a{background:#0F3424}.diff .d{background:#3E1A1F}}
+/* terminal */
+.term{border-radius:12px;overflow:hidden;border:1px solid #13283A;background:var(--logbg)}
+.term .th{display:flex;gap:8px;align-items:center;padding:6px 11px;font-size:12px;color:#8FA6B4;border-bottom:1px solid #13283A}
+.term .th code{color:#E6EFF3;background:none;border:0;padding:0;font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.term pre{margin:0;padding:9px 12px;color:var(--logtx);font-size:11.5px;max-height:280px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term .ec{font-size:11px;padding:0 7px;border-radius:99px;background:#0F3A2B;color:#3FCB8A}.term .ec.bad{background:#4A1F25;color:#F2625A}
+/* kế hoạch */
+.todos{list-style:none;margin:0;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);display:flex;flex-direction:column;gap:3px;font-size:13px}
+.todos li{display:flex;gap:8px;align-items:flex-start}.todos li .c{width:16px;flex:none;text-align:center}.todos li.done{color:var(--mut);text-decoration:line-through}.todos li.doing{font-weight:600;color:var(--acc-t)}
+.todos .hd{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);text-decoration:none!important;font-weight:600}
+/* ô hỏi quyền có diff */
+.askcard.code{max-height:52vh;overflow:auto}.askcard.code .fcard{color:var(--tx)}
+.askcard .row button{white-space:nowrap}
+.askcard textarea{width:100%;padding:6px 8px;font-size:13px;border-radius:8px}
+/* @file */
+.mentions{display:flex;gap:6px;flex-wrap:wrap}.mentions span{font-size:12px;background:var(--mist);border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-family:ui-monospace,Menlo,monospace}
+.mentions b{cursor:pointer;margin-left:5px;color:var(--mut)}
+/* khung bên */
+.side.code{width:min(44vw,600px)}
+.side .tabsel{display:flex;gap:6px}
+.flist{list-style:none;margin:0;padding:0;font-size:12.5px;font-family:ui-monospace,Menlo,monospace}
+.flist li{padding:3px 6px;border-radius:6px;cursor:pointer;display:flex;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.flist li:hover{background:var(--hover)}
+.flist .st{width:20px;flex:none;color:var(--warn);font-weight:700}
+.viewer{font-size:11.5px;background:var(--in);border:1px solid var(--line);border-radius:8px;padding:8px;max-height:60vh;overflow:auto;white-space:pre;margin:0;font-family:ui-monospace,Menlo,monospace}
+/* chọn thư mục */
+.dlg.wide{max-width:640px}dialog:has(.dlg.wide){max-width:640px}
+.browse{border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;font-size:13px}
+.browse .it{display:flex;gap:8px;padding:6px 10px;cursor:pointer;border-bottom:1px solid var(--line);align-items:center}.browse .it:hover{background:var(--hover)}
+.browse .it small{color:var(--mut);margin-left:auto}.browse .cur{padding:6px 10px;background:var(--in);font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
+.pick{max-width:760px;margin:8vh auto 0;padding:0 24px;display:flex;flex-direction:column;gap:14px}
+.pick h2{margin:0;font-size:26px}.pick .cards{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.hello .tips{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;font-size:12.5px;color:var(--mut)}
+.hello .tips div{border:1px dashed var(--line);border-radius:10px;padding:8px 10px}.hello .tips code{font-size:12px}
+.top .crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.top .tt{min-width:180px}
+body:has(#side:not([hidden])) #engine{display:none}
+.side.code{width:min(40vw,560px)}

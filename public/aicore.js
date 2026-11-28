@@ -146,7 +146,7 @@ Quy tắc:
       let r;
       try { r = await deps.runTool(c.name, c.input || {}); } catch (e) { r = { text: String((e && e.message) || e), isError: true }; }
       const img = r.image ? imageBlock(r.image) : null;
-      out.push({ type: 'tool_result', tool_use_id: c.id, content: [{ type: 'text', text: String(r.text || '').slice(0, 20000) || '(xong)' }, ...(img ? [img] : [])], ...(r.isError ? { is_error: true } : {}) });
+      out.push({ type: 'tool_result', tool_use_id: c.id, content: [{ type: 'text', text: String(r.text || '').slice(0, 20000) || '(xong)' }, ...(img ? [img] : [])], ...(r.isError ? { is_error: true } : {}), ...(r.meta ? { meta: r.meta } : {}) });
     }
     return out;
   }
@@ -211,10 +211,10 @@ Quy tắc:
     const rest = tools.filter((t) => /^mcp_/.test(t.name));
     return [...core, ...rest].slice(0, max).map((t) => ({ ...t, description: t.description.length > 300 ? t.description.slice(0, 297) + '…' : t.description }));
   }
-  function toOllama(messages, context, maxMessages = 24) {
+  function toOllama(messages, context, maxMessages = 24, system = SYSTEM) {
     const hist = trimHistory(messages, maxMessages, 1);
     const names = new Map();
-    const out = [{ role: 'system', content: context ? `${SYSTEM}\n\nNgữ cảnh lúc này:\n${context}` : SYSTEM }];
+    const out = [{ role: 'system', content: context ? `${system}\n\nNgữ cảnh lúc này:\n${context}` : system }];
     for (const m of hist) {
       if (m.role === 'assistant') {
         const text = m.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
@@ -261,11 +261,12 @@ Quy tắc:
     for (const c of calls) out.push({ type: 'tool_use', id: `lc_${Date.now().toString(36)}_${(n++).toString(36)}`, name: c.name, input: c.input });
     return out;
   }
-  function ollamaBody(model, messages, tools, context) {
+  /** system: lời nhắc hệ thống khác (Socin Code); mặc định trợ lý Socin AI. */
+  function ollamaBody(model, messages, tools, context, system) {
     return {
       model, stream: false, think: false, keep_alive: '10m',
       options: { num_ctx: LOCAL_NUM_CTX, temperature: 0.2 },
-      messages: toOllama(messages, context),
+      messages: toOllama(messages, context, system ? 30 : 24, system || SYSTEM),
       tools: localTools(tools).map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } })),
     };
   }
