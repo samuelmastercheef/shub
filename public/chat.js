@@ -86,14 +86,18 @@ function renderAcct() {
 }
 
 // ---------- đăng nhập Socin ----------
-function openLogin() { $('lgErr').textContent = ''; if (S.account.baseUrl) $('lgUrl').value = S.account.baseUrl; $('lgKey').value = ''; $('login').showModal(); }
+function openLogin() { $('lgErr').textContent = ''; if (S.account.baseUrl) $('lgUrl').value = S.account.baseUrl; $('lgKey').value = ''; $('lgPw').value = ''; $('login').showModal(); }
 $('lgSave').onclick = async (e) => {
   e.preventDefault();
   const url = $('lgUrl').value.trim().replace(/\/$/, ''), key = $('lgKey').value.trim();
   if (!/^https:\/\//.test(url) && !/^http:\/\/(127\.0\.0\.1|localhost)/.test(url)) { $('lgErr').textContent = 'Địa chỉ phải bắt đầu bằng https://'; return; }
-  if (!key && !S.account.linked) { $('lgErr').textContent = 'Dán khoá S Creator (spcr_…)'; return; }
-  try { const r = await api('POST', '/api/cr/settings/save', { socinBaseUrl: url, ...(key ? { socinToken: key } : {}) }); if (r.error) throw new Error(r.error); }
-  catch (err) { $('lgErr').textContent = err.message; return; }
+  const user = $('lgUser').value.trim(), pw = $('lgPw').value;
+  if (!key && !(user && pw) && !S.account.linked) { $('lgErr').textContent = 'Nhập tên đăng nhập và mật khẩu Socin'; return; }
+  $('lgSave').disabled = true; $('lgErr').textContent = '';
+  try {
+    if (!key && user && pw) { const r = await api('POST', '/api/ai/login', { baseUrl: url, username: user, password: pw }); if (r.error) throw new Error(r.error); }
+    else { const r = await api('POST', '/api/cr/settings/save', { socinBaseUrl: url, ...(key ? { socinToken: key } : {}) }); if (r.error) throw new Error(r.error); }
+  } catch (err) { $('lgErr').textContent = err.message; return; } finally { $('lgSave').disabled = false; $('lgPw').value = ''; }
   await loadAccount();
   if (S.account.error) { $('lgErr').textContent = S.account.error; return; }
   $('login').close(); await loadTools(); renderAll();

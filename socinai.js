@@ -147,7 +147,11 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
     const l = socinLink(); if (!l) return { linked: false };
     try {
       const [me, ai] = await Promise.all([socin('GET', '/api/integration/creator/me', null, 8000), socin('GET', '/api/integration/creator/ai/info', null, 8000)]);
-      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : `Socin trả ${me.status}` };
+      if (me.status === 404) { // Socin chưa có /me (bản trước 0.165.0): khoá vẫn dùng được cho S Creator, Zoom, S Remote
+        const acc = await socin('GET', '/api/integration/creator/accounts', null, 8000).catch(() => null);
+        if (acc && acc.status === 200) return { linked: true, baseUrl: l.baseUrl, online: true, me: { name: 'Tài khoản Socin', tenant: '' }, ai: null, outdated: true, error: 'Đã kết nối. Máy chủ Socin chưa cập nhật bản 0.165.0 nên AI Socin chưa dùng được; trợ lý dùng model trên máy.' };
+      }
+      return { linked: true, baseUrl: l.baseUrl, online: true, me: me.status === 200 ? me.data : null, ai: ai.status === 200 ? ai.data : null, error: me.status === 200 ? '' : me.status === 401 ? 'Khoá Socin không đúng hoặc đã thu hồi' : me.status === 404 ? `Không thấy Socin ở ${l.baseUrl}. Địa chỉ đúng là https://app.socin.org` : `Socin trả ${me.status}` };
     } catch (e) { return { linked: true, baseUrl: l.baseUrl, online: false, error: e.message }; }
   }
 
@@ -297,6 +301,25 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       if (r === 'tools') return json(res, 200, { tools: await allTools(true) }), true;
       if (r === 'call' && post) { const b = await bigBody(req); return json(res, 200, await callTool(String(b.name || ''), b.input || {}, { confirmed: !!b.confirmed, mode: ['read', 'edit', 'full'].includes(b.mode) ? b.mode : 'edit' })), true; }
       if (r === 'account') return json(res, 200, await account()), true;
+      // Đăng nhập bằng tên + mật khẩu Socin: máy chủ cấp khoá S Creator riêng cho máy này. Mật khẩu không lưu lại.
+      if (r === 'login' && post) {
+        const b = await body(req);
+        const baseUrl = String(b.baseUrl || '').trim().replace(/\/+$/, '');
+        if (!/^https:\/\/[\w.-]+(:\d+)?$/.test(baseUrl) && !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(baseUrl)) bad('Địa chỉ Socin phải là https://…');
+        const username = String(b.username || '').trim().slice(0, 100), password = String(b.password || '').slice(0, 200);
+        if (!username || !password) bad('Nhập tên đăng nhập và mật khẩu');
+        const device = (os.hostname() || 'máy tính').replace(/\.local$/i, '').slice(0, 40);
+        let x;
+        try { x = await doFetch(baseUrl + '/api/integration/creator/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username, password, device }), signal: AbortSignal.timeout(20000) }); }
+        catch { bad(`Không kết nối được ${baseUrl}. Kiểm tra mạng hoặc địa chỉ (đúng là https://app.socin.org).`, 502); }
+        let d = {}; try { d = await x.json(); } catch {}
+        if (x.status === 404) bad('Máy chủ Socin chưa có đăng nhập bằng mật khẩu (cần bản 0.166.0). Tạm thời đăng nhập bằng khoá S Creator.', 409);
+        if (x.status !== 201 || !d.api_key) bad(d.message || `Socin trả ${x.status}`, x.status === 429 ? 429 : 401);
+        const cur = rj(F.creator, {});
+        wj(F.creator, { ...cur, socin: { ...(cur.socin || {}), baseUrl, token: d.api_key } }, 0o600);
+        catCache = null;
+        return json(res, 200, { ok: true, user: d.user || null }), true;
+      }
       if (r === 'plugins') return json(res, 200, { ...(await catalog()), servers: mcp.list() }), true;
       if (r === 'socin' && post) {
         const b = await bigBody(req);
@@ -336,7 +359,7 @@ module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
       }
       if (r === 'gateway/claude-desktop' && post) { ensureToken(); const f = addToClaudeDesktop(); return json(res, 200, { ok: true, path: f, note: 'Khởi động lại Claude Desktop để thấy Socin.' }), true; }
       return json(res, 404, { error: 'not found' }), true;
-    } catch (e) { return json(res, e.code === 413 ? 413 : e.code === 409 ? 409 : 400, { error: String(e.message || e) }), true; }
+    } catch (e) { return json(res, [401, 409, 413, 429, 502].includes(e.code) ? e.code : 400, { error: String(e.message || e) }), true; }
   };
   handler.onListen = (port) => { try { wj(F.run, { url: `http://127.0.0.1:${port}/mcp`, pid: process.pid }, 0o600); } catch {} };
   handler.callTool = callTool; handler.allTools = allTools; handler.rpc = rpc; handler.mcp = mcp;

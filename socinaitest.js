@@ -39,11 +39,12 @@ const req = (p, o, headers = {}) => new Promise((res) => { const rq = http.reque
 })();
 
 // ---- Socin giả ----
-let proposalSeen = null; let agentSeen = null;
+let proposalSeen = null; let agentSeen = null; let loginSeen = null;
 const socin = http.createServer((q, r) => {
   const j = (c, o) => { r.writeHead(c, { 'Content-Type': 'application/json' }); r.end(JSON.stringify(o)); };
-  if (q.headers.authorization !== 'Bearer ' + SPCR) return j(401, { error: 'unauthorized' });
   let b = ''; q.on('data', (d) => (b += d)); q.on('end', () => {
+    if (q.url === '/api/integration/creator/login') { const x = JSON.parse(b); loginSeen = x; return x.username === 'lucid' && x.password === 'Mat-khau-dai-123' ? j(201, { api_key: SPCR, key_name: 'Socin Studio · ' + x.device, user: { username: 'lucid' } }) : j(401, { error: 'invalid_credentials', message: 'Sai tên đăng nhập hoặc mật khẩu' }); }
+    if (q.headers.authorization !== 'Bearer ' + SPCR) return j(401, { error: 'unauthorized' });
     if (q.url === '/api/integration/creator/me') return j(200, { name: 'Lucid', admin: true, owner: true, tenant: 'Socin' });
     if (q.url === '/api/integration/creator/ai/info') return j(200, { enabled: true, provider: 'anthropic', provider_label: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', source: 'main' });
     if (q.url === '/api/integration/creator/plugins') return j(200, { version: 1, plugins: [{ id: 'sdraw', name: 'S Draw', icon: '📐', category: 'design', kind: 'mcp-http', url: 'auto', needsSocin: false, offline: true, description: 'x' }, { id: 'socin', name: 'Socin', icon: '🌐', category: 'socin', kind: 'builtin', needsSocin: true, offline: false, description: 'y' }], store: [{ code: 'ai', kind: 'ai', name: 'Gói AI', description: 'Thêm lượt', price_vnd: 100000, recurring: true }], store_url: 'https://app.socin.test/#store' });
@@ -100,7 +101,14 @@ socin.listen(0, () => fakeMcp.listen(0, async () => {
     ok((await req('/api/ai/plugins')).j.source === 'offline', 'kho plugin offline khi chưa đăng nhập');
 
     // đăng nhập Socin (lưu chung với S Creator)
-    ok((await req('/api/cr/settings/save', { socinBaseUrl: SOCIN, socinToken: SPCR })).j.ok, 'đăng nhập Socin');
+    const bad = await req('/api/ai/login', { baseUrl: SOCIN, username: 'lucid', password: 'sai-mat-khau' });
+    ok(bad.s === 401 && /Sai tên đăng nhập/.test(bad.j.error), 'đăng nhập sai mật khẩu: báo lỗi của Socin');
+    ok((await req('/api/ai/account')).j.linked === false, 'sai mật khẩu thì chưa liên kết');
+    const lg = await req('/api/ai/login', { baseUrl: SOCIN + '/', username: 'lucid', password: 'Mat-khau-dai-123' });
+    ok(lg.s === 200 && lg.j.ok && loginSeen.device.length > 0, 'đăng nhập bằng mật khẩu: Socin cấp khoá cho máy này');
+    const crf = fs.readFileSync(path.join(WS, 'creator', 'settings.json'), 'utf8');
+    ok(crf.includes(SPCR) && !crf.includes('Mat-khau-dai-123') && (fs.statSync(path.join(WS, 'creator', 'settings.json')).mode & 0o777) === 0o600, 'lưu khoá (mode 600), không lưu mật khẩu');
+    ok((await req('/api/ai/login', { baseUrl: 'http://evil.example', username: 'a', password: 'b' })).s === 400, 'chặn địa chỉ không phải https');
     const acc = (await req('/api/ai/account')).j;
     ok(acc.linked && acc.me.name === 'Lucid' && acc.ai.provider === 'anthropic', 'thông tin tài khoản và AI doanh nghiệp');
     tools = (await req('/api/ai/tools')).j.tools.map((t) => t.name);
