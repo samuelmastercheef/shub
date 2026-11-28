@@ -525,6 +525,7 @@ async function renderPlugins() {
   renderAll();
   const h = location.hash.slice(1);
   if (h === 'plugins' || h === 'projects') go(h);
+  if (h === 'model') $('modelBtn').click();
   if (!S.account.linked && !store.get('sc.offlineOk', false)) { openLogin(); store.set('sc.offlineOk', true); }
   setInterval(() => { if (!S.busy) loadApps(); }, 20000);
 })();

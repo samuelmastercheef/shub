@@ -361,6 +361,7 @@ const remoteHandle = require('./remote')({ WS, json, body });
 const sgameHandle = require('./sgame')({ WS, cfg, json, body });
 const cotichHandle = require('./cotich')({ cfg, json });
 const aiHandle = require('./socinai')({ WS, cfg, json, body, ROOT });
+const codeHandle = require('./socincode')({ WS, json, body });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -379,6 +380,7 @@ const server = http.createServer(async (req, res) => {
     if (await sgameHandle(req, res, u)) return;
     if (await cotichHandle(req, res, u)) return;
     if (await aiHandle(req, res, u)) return;
+    if (await codeHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!startCmdOf(a), ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });
