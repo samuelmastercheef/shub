@@ -360,6 +360,7 @@ const zoomHandle = require('./zoom')({ WS, cfg, json, body });
 const remoteHandle = require('./remote')({ WS, json, body });
 const sgameHandle = require('./sgame')({ WS, cfg, json, body });
 const cotichHandle = require('./cotich')({ cfg, json });
+const aiHandle = require('./socinai')({ WS, cfg, json, body, ROOT });
 const server = http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://x');
   // Chặn truy cập từ trang web lạ / DNS rebinding: chỉ nhận Host và Origin là local
@@ -377,6 +378,7 @@ const server = http.createServer(async (req, res) => {
     if (await remoteHandle(req, res, u)) return;
     if (await sgameHandle(req, res, u)) return;
     if (await cotichHandle(req, res, u)) return;
+    if (await aiHandle(req, res, u)) return;
     if (u.pathname === '/api/apps') {
       const out = await Promise.all(APPS.map(async (a) => ({ id: a.id, name: a.name, icon: a.icon, type: a.type, desc: a.desc, canStart: !!startCmdOf(a), ...(await appStatus(a)) })));
       return json(res, 200, { apps: out });
@@ -439,7 +441,8 @@ const server = http.createServer(async (req, res) => {
       if (!p.startsWith(REPORTS) || !fs.existsSync(p)) return json(res, 404, {});
       res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream' }); return fs.createReadStream(p).pipe(res);
     }
-    const f = u.pathname === '/' ? 'index.html' : u.pathname.slice(1);
+    // Màn chính là Socin Chat; trang Ứng dụng (S Hub cũ) ở /apps.html
+    const f = u.pathname === '/' ? 'chat.html' : u.pathname === '/index.html' ? 'apps.html' : u.pathname.slice(1);
     const p = path.join(ROOT, 'public', path.normalize(f));
     if (p.startsWith(path.join(ROOT, 'public')) && fs.existsSync(p)) { res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'text/plain' }); return fs.createReadStream(p).pipe(res); }
     json(res, 404, { error: 'not found' });
@@ -452,7 +455,8 @@ function listen(port, tries) {
   });
   server.listen(port, '127.0.0.1', () => {
     cfg.port = port;
-    console.log(`\nS Hub chạy tại http://127.0.0.1:${port}\nWorkspace: ${WS}\n(Giữ cửa sổ này mở. Nhấn Ctrl+C để tắt.)`);
+    aiHandle.onListen(port);
+    console.log(`\nSocin Chat (S Hub) chạy tại http://127.0.0.1:${port}\nWorkspace: ${WS}\n(Giữ cửa sổ này mở. Nhấn Ctrl+C để tắt.)`);
   });
 }
 listen(cfg.port, 10);
