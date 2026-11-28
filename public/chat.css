@@ -1,14 +1,14 @@
-/* Socin Chat: cùng ngôn ngữ thiết kế với Chat thiết kế của S Draw (rail tối, nút vàng, khối lệnh mở ra xem được, thẻ xin phép) */
+/* Socin Studio: cùng ngôn ngữ thiết kế với Chat thiết kế của S Draw (rail tối, nút vàng, khối lệnh mở ra xem được, thẻ xin phép) */
 *{box-sizing:border-box}html,body{height:100%;margin:0}
 body{display:flex;font-size:14px;line-height:1.55;overflow:hidden}
 [hidden]{display:none!important}
 .flex{flex:1}.mut{color:var(--mut)}.sm{font-size:12.5px}
 :root{--rail:#0D1B2A;--rail-tx:#E6EFF3;--rail-mut:#8FA6B4;--rail-hi:#1B2D40;--mist:#EAF3F6;--warn-soft:#FFF6E0;--warn-ink:#7A4F00}
-@media (prefers-color-scheme:dark){:root{--rail:#040C14;--rail-hi:#10263A;--mist:#10263A;--warn-soft:#3A2C0C;--warn-ink:#FFD58A}}
+@media (prefers-color-scheme:dark){:root{--rail:#0A1722;--rail-hi:#10263A;--mist:#10263A;--warn-soft:#3A2C0C;--warn-ink:#FFD58A}}
 
 /* rail */
 .rail{width:268px;flex:none;background:var(--rail);color:var(--rail-tx);display:flex;flex-direction:column;padding:18px 14px 12px;gap:10px;min-height:0}
-.brand{display:flex;gap:11px;align-items:center;padding:0 6px 6px}.brand img{width:36px;height:36px;border-radius:10px}.brand b{display:block;font-size:19px;line-height:1.1}.brand small{color:var(--rail-mut);font-size:11.5px}
+.brand{display:flex;gap:11px;align-items:center;padding:0 6px 6px}.brand img{width:36px;height:36px;border-radius:10px}.brand img.wm{width:auto;height:30px;border-radius:0}.brand .wm+span b{font-weight:500;font-size:20px;color:var(--rail-tx)}.brand b{display:block;font-size:19px;line-height:1.1}.brand small{color:var(--rail-mut);font-size:11.5px}
 .newchat{width:100%;padding:11px 12px;font-size:14.5px;border-radius:12px}
 .railnav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
 .railnav a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;color:var(--rail-tx);text-decoration:none;cursor:pointer;font-weight:500}

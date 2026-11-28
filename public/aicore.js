@@ -1,4 +1,4 @@
-// Lõi trợ lý Socin AI (Socin Chat), dùng chung cho trình duyệt (window.AICore) và server Node (require).
+// Lõi trợ lý Socin AI (Socin Studio), dùng chung cho trình duyệt (window.AICore) và server Node (require).
 // Cùng thiết kế với Chat thiết kế của S Draw: tin nhắn theo khối như Messages API (text, image, tool_use, tool_result),
 // vòng lặp một lượt (hỏi model → chạy lệnh → gửi kết quả → lặp), bộ hiểu lệnh khi không có model,
 // và chuyển đổi sang Ollama cho model chạy trên máy (mặc định Qwen3.5 4B).

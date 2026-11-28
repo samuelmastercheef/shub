@@ -1,7 +1,7 @@
-// Socin Chat: trợ lý Socin AI của S Hub.
+// Socin Studio: trợ lý Socin AI của S Hub.
 // - Sổ lệnh chung (S Hub + Socin + máy chủ MCP khác) cho khung chat và cho cổng MCP của S Hub (/mcp).
 // - Model: AI Socin (khoá AI quản lý trong admin Socin, gọi qua khoá S Creator), model trên máy (Ollama, mặc định Qwen3.5 4B).
-// - Lưu cuộc trò chuyện, dự án (hướng dẫn + tài liệu làm ngữ cảnh) ở <workspace>/socin-chat/.
+// - Lưu cuộc trò chuyện, dự án (hướng dẫn + tài liệu làm ngữ cảnh) ở <workspace>/socin-studio/.
 // Không dùng .env: khoá Socin dùng chung với S Creator (settings.json mode 600), mã khoá MCP sinh ngẫu nhiên lưu mode 600.
 const fs = require('fs');
 const path = require('path');
@@ -29,7 +29,7 @@ const obj = (props = {}, required = []) => ({ type: 'object', properties: props,
 const str = (description, extra = {}) => ({ type: 'string', description, ...extra });
 
 module.exports = function socinAi({ WS, cfg, json, body, ROOT, fetchImpl }) {
-  const DIR = path.join(WS, 'socin-chat');
+  const DIR = path.join(WS, 'socin-studio');
   fs.mkdirSync(DIR, { recursive: true });
   const F = { chats: path.join(DIR, 'chats.json'), projects: path.join(DIR, 'projects.json'), llm: path.join(DIR, 'llm.json'), mcp: path.join(DIR, 'mcp.json'), run: path.join(DIR, 'run.json'), creator: path.join(WS, 'creator', 'settings.json') };
   const rj = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };

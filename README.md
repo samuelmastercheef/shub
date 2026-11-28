@@ -1,15 +1,15 @@
-# S Hub · Socin Chat
+# S Hub · Socin Studio
 
-Mở S Hub là vào **Socin Chat**: trò chuyện với trợ lý **Socin AI** để vận hành cả hệ sinh thái Socin (mở app, kiểm thử repo, triển khai VPS, Zoom worker, S Remote, S Draw, Socin trên web, plugin MCP). Trang **Ứng dụng** (`/apps.html`) vẫn là S Hub như cũ để mở từng công cụ: S Build Hub, S Test Hub, S VPS và các app khác (S Chat, S VPN, S Clean, Terminal Socin).
+Mở S Hub là vào **Socin Studio**: trò chuyện với trợ lý **Socin AI** để vận hành cả hệ sinh thái Socin (mở app, kiểm thử repo, triển khai VPS, Zoom worker, S Remote, S Draw, Socin trên web, plugin MCP). Trang **Ứng dụng** (`/apps.html`) vẫn là S Hub như cũ để mở từng công cụ: S Build Hub, S Test Hub, S VPS và các app khác (S Chat, S VPN, S Clean, Terminal Socin).
 
-## Socin Chat
+## Socin Studio
 - **Giao diện như Chat thiết kế của S Draw:** danh sách cuộc trò chuyện (tìm, ghim, đổi tên, xoá), gõ `/` chọn lệnh, nút **Lệnh** xem mọi lệnh theo nhóm, khối lệnh bấm để xem tham số và kết quả, thẻ **xin phép** cho lệnh thay đổi lớn (triển khai VPS, sao lưu, tạo bài nháp Socin, lệnh MCP phá huỷ), ô **Quyền** (Chỉ xem / Xem và thao tác / Đầy đủ), đính kèm ảnh. App mở từ chat hiện ở **khung bên** cạnh cuộc trò chuyện.
 - **Dự án (ngữ cảnh kiểu Claude):** mỗi dự án có hướng dẫn cho trợ lý và tài liệu (dán chữ hoặc chọn file .txt/.md); cuộc trò chuyện trong dự án luôn gửi kèm ngữ cảnh đó. Nút **Ngữ cảnh** trên đầu chat cho xem đúng những gì trợ lý nhận.
 - **Model** (nút dưới khung chat): *Tự động* (AI Socin khi có mạng, mất mạng thì model trên máy), *chỉ AI Socin*, *chỉ trên máy*. AI Socin dùng nhà cung cấp admin đã cài ở Socin → Cài đặt → AI (Claude, Gemini, OpenAI), khoá nằm trong admin Socin, không dùng `.env`. Model trên máy: Ollama, mặc định **Qwen3.5 4B** (tải ~3,4 GB, ~6 GB RAM); lần đầu bấm **Cài Ollama** (Homebrew, không có thì mở trang tải) rồi **Đồng ý tải**. Dùng chung Ollama với S Draw nên model không tải hai lần. Không có model nào thì vẫn có bộ hiểu lệnh ("mở S VPS", "bật zoom worker", `/vps_servers`...).
 - **Đăng nhập tài khoản Socin hoặc offline:** đăng nhập bằng địa chỉ + khoá S Creator (dùng chung với S Creator, Zoom worker, S Remote) để có AI Socin, lệnh Socin (tài khoản MXH, bài nháp, máy từ xa) và kho plugin mới nhất. Không đăng nhập vẫn dùng được với model trên máy.
 - **Plugin & kết nối:** kho plugin Socin (S Draw, Blender, Figma, GitHub, Playwright, Context7, Thư mục, Bộ nhớ, Đọc trang web...; khi offline dùng bản có sẵn), dịch vụ Store Socin, máy chủ MCP đã kết nối (bật/tắt/thử/gỡ, thêm máy chủ HTTP hoặc stdio). S Draw có sẵn: S Hub tự dò cổng MCP của S Draw khi S Draw bật "Cho AI kết nối". Mã khoá máy chủ MCP lưu trên máy (mode 600), không trả về trình duyệt.
 - **Cổng MCP của S Hub** (mặc định tắt): cho Claude Desktop, Cursor, Claude Code, Windsurf, VS Code gọi vào các ứng dụng Socin. HTTP `http://127.0.0.1:<cổng>/mcp` + `Authorization: Bearer`, hoặc stdio qua `mcp-stdio.js` (nút **Thêm vào Claude Desktop**, file cấu hình không chứa mã khoá). Ba mức quyền; lệnh ví (S Xpub, gom tiền) không bao giờ có trong sổ lệnh.
-- Dữ liệu ở `<workspace>/socin-chat/` (cuộc trò chuyện, dự án, cấu hình model, máy chủ MCP, cổng MCP). Mã: `socinai.js` (sổ lệnh, model, cổng MCP), `mcpclient.js`, `mcp-stdio.js`, `public/aicore.js` (lõi dùng chung), `public/chat.*`. Phía Socin: PR repo social (`POST /api/integration/creator/ai/agent`, `/plugins`, `/me`). Test: `node socinaitest.js`.
+- Dữ liệu ở `<workspace>/socin-studio/` (cuộc trò chuyện, dự án, cấu hình model, máy chủ MCP, cổng MCP). Mã: `socinai.js` (sổ lệnh, model, cổng MCP), `mcpclient.js`, `mcp-stdio.js`, `public/aicore.js` (lõi dùng chung), `public/chat.*`. Phía Socin: PR repo social (`POST /api/integration/creator/ai/agent`, `/plugins`, `/me`). Test: `node socinaitest.js`.
 
 ## Chạy
 1. Cần Node 18+ và git.

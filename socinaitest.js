@@ -1,4 +1,4 @@
-// Test Socin Chat: lõi trợ lý (aicore), sổ lệnh, Socin giả (AI có gọi lệnh, kho plugin), máy chủ MCP giả (HTTP + stdio),
+// Test Socin Studio: lõi trợ lý (aicore), sổ lệnh, Socin giả (AI có gọi lệnh, kho plugin), máy chủ MCP giả (HTTP + stdio),
 // cổng MCP của S Hub và cầu nối stdio. Không cần mạng, không cần Ollama.
 const { spawn } = require('child_process'); const http = require('http'); const fs = require('fs'); const os = require('os'); const path = require('path');
 const A = require('./public/aicore.js');
@@ -80,7 +80,7 @@ socin.listen(0, () => fakeMcp.listen(0, async () => {
   srv = spawn(process.execPath, ['server.js'], { cwd: __dirname, env: { ...process.env, SHUB_CONFIG: cfgFile, SDRAW_USERDATA: path.join(T, 'no-sdraw') }, stdio: ['ignore', 'pipe', 'inherit'] });
   for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 200)); if ((await req('/api/env').catch(() => ({}))).s === 200) break; }
   try {
-    const home = await req('/'); ok(home.s === 200 && /Socin Chat/.test(home.t) && /chat\.js/.test(home.t), 'trang chính là Socin Chat');
+    const home = await req('/'); ok(home.s === 200 && /Socin Studio/.test(home.t) && /chat\.js/.test(home.t), 'trang chính là Socin Studio');
     ok((await req('/apps.html')).t.includes('CATS'), 'trang Ứng dụng (S Hub cũ) vẫn còn');
     let tools = (await req('/api/ai/tools')).j.tools.map((t) => t.name);
     ok(tools.includes('hub_status') && tools.includes('open_app') && !tools.some((n) => n.startsWith('socin_')), 'sổ lệnh: lệnh S Hub có, lệnh Socin ẩn khi offline');

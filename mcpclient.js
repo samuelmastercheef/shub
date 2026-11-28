@@ -1,5 +1,5 @@
-// Socin Chat gọi máy chủ MCP khác (S Draw, Blender, GitHub, Playwright...): Streamable HTTP (trả JSON hoặc SSE) và stdio.
-// Cấu hình lưu ở <workspace>/socin-chat/mcp-servers.json (mode 600). Mã khoá của máy chủ không bao giờ trả về trình duyệt.
+// Socin Studio gọi máy chủ MCP khác (S Draw, Blender, GitHub, Playwright...): Streamable HTTP (trả JSON hoặc SSE) và stdio.
+// Cấu hình lưu ở <workspace>/socin-studio/mcp-servers.json (mode 600). Mã khoá của máy chủ không bao giờ trả về trình duyệt.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -70,7 +70,7 @@ class HttpConn {
   }
   async request(method, params, timeout) {
     if (!this.ready) {
-      await this.post({ jsonrpc: '2.0', id: this.n++, method: 'initialize', params: { protocolVersion: PROTOCOL, capabilities: {}, clientInfo: { name: 'socin-chat', title: 'Socin Chat (S Hub)', version: '1.0.0' } } }, 15000);
+      await this.post({ jsonrpc: '2.0', id: this.n++, method: 'initialize', params: { protocolVersion: PROTOCOL, capabilities: {}, clientInfo: { name: 'socin-studio', title: 'Socin Studio (S Hub)', version: '1.0.0' } } }, 15000);
       await this.post({ jsonrpc: '2.0', method: 'notifications/initialized' }).catch(() => {});
       this.ready = true;
     }
@@ -115,7 +115,7 @@ class StdioConn {
   }
   async request(method, params, timeout) {
     if (!this.ready) {
-      this.ready = this.send({ jsonrpc: '2.0', id: this.n++, method: 'initialize', params: { protocolVersion: PROTOCOL, capabilities: {}, clientInfo: { name: 'socin-chat', version: '1.0.0' } } }, 90000)
+      this.ready = this.send({ jsonrpc: '2.0', id: this.n++, method: 'initialize', params: { protocolVersion: PROTOCOL, capabilities: {}, clientInfo: { name: 'socin-studio', version: '1.0.0' } } }, 90000)
         .then(() => this.send({ jsonrpc: '2.0', method: 'notifications/initialized' }));
       this.ready.catch(() => { this.ready = null; });
     }

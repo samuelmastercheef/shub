@@ -441,7 +441,7 @@ const server = http.createServer(async (req, res) => {
       if (!p.startsWith(REPORTS) || !fs.existsSync(p)) return json(res, 404, {});
       res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream' }); return fs.createReadStream(p).pipe(res);
     }
-    // Màn chính là Socin Chat; trang Ứng dụng (S Hub cũ) ở /apps.html
+    // Màn chính là Socin Studio; trang Ứng dụng (S Hub cũ) ở /apps.html
     const f = u.pathname === '/' ? 'chat.html' : u.pathname === '/index.html' ? 'apps.html' : u.pathname.slice(1);
     const p = path.join(ROOT, 'public', path.normalize(f));
     if (p.startsWith(path.join(ROOT, 'public')) && fs.existsSync(p)) { res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'text/plain' }); return fs.createReadStream(p).pipe(res); }
@@ -456,7 +456,7 @@ function listen(port, tries) {
   server.listen(port, '127.0.0.1', () => {
     cfg.port = port;
     aiHandle.onListen(port);
-    console.log(`\nSocin Chat (S Hub) chạy tại http://127.0.0.1:${port}\nWorkspace: ${WS}\n(Giữ cửa sổ này mở. Nhấn Ctrl+C để tắt.)`);
+    console.log(`\nSocin Studio (S Hub) chạy tại http://127.0.0.1:${port}\nWorkspace: ${WS}\n(Giữ cửa sổ này mở. Nhấn Ctrl+C để tắt.)`);
   });
 }
 listen(cfg.port, 10);

@@ -1,4 +1,4 @@
-// Socin Chat: màn chính của S Hub. Trò chuyện với trợ lý Socin AI, quản lý luồng hội thoại, dự án (ngữ cảnh), plugin/MCP.
+// Socin Studio: màn chính của S Hub. Trò chuyện với trợ lý Socin AI, quản lý luồng hội thoại, dự án (ngữ cảnh), plugin/MCP.
 // Vòng lặp chat chạy ở trình duyệt (AICore.runTurn), model và lệnh gọi qua server S Hub (/api/ai/*).
 (() => {
 'use strict';
@@ -114,7 +114,7 @@ function renderHead() {
   if (S.view === 'projects') { $('title').textContent = 'Dự án'; $('crumb').textContent = 'Ngữ cảnh, hướng dẫn và tài liệu cho trợ lý'; return; }
   if (S.view === 'plugins') { $('title').textContent = 'Plugin & kết nối'; $('crumb').textContent = 'Kho plugin Socin, máy chủ MCP, cổng MCP cho AI khác'; return; }
   $('title').textContent = c ? c.title : 'Cuộc trò chuyện mới';
-  $('crumb').innerHTML = p ? `<a data-p="${esc(p.id)}">${esc(p.icon)} ${esc(p.name)}</a>` : 'Socin Chat';
+  $('crumb').innerHTML = p ? `<a data-p="${esc(p.id)}">${esc(p.icon)} ${esc(p.name)}</a>` : 'Socin Studio';
   const a = $('crumb').querySelector('a'); if (a) a.onclick = () => openProject(a.dataset.p);
 }
 function renderEngine() {
@@ -174,7 +174,7 @@ function helloHtml() {
     ['Triển khai lên VPS', 'Cập nhật dự án từ GitHub', 'Liệt kê server VPS và dự án, mình muốn triển khai bản mới.'],
     ['Kiểm thử một repo', 'Lint, build, test, bảo mật', 'Kiểm thử repo shub giúp mình.'],
     ['Thiết kế với S Draw', 'Gọi S Draw qua MCP', 'Mở S Draw và cho mình biết đang có mô hình nào.'],
-    ['Soạn bài nháp TikTok', 'Đẩy nháp lên Socin để duyệt', 'Soạn giúp một bài nháp TikTok giới thiệu Socin Chat.'],
+    ['Soạn bài nháp TikTok', 'Đẩy nháp lên Socin để duyệt', 'Soạn giúp một bài nháp TikTok giới thiệu Socin Studio.'],
     ['Bật Zoom worker', 'Chạy worker giữ phòng Zoom', 'Bật zoom worker.'],
   ];
   return `<div class="hello"><h2>${p ? esc(p.icon + ' ' + p.name) : 'Chào bạn, hôm nay vận hành gì?'}</h2>

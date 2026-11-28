@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Cầu nối stdio ↔ cổng MCP của S Hub, cho client MCP chỉ nói stdio (Claude Desktop...).
-// Đọc địa chỉ đang chạy (socin-chat/run.json) và mã khoá (socin-chat/mcp.json) trong thư mục làm việc của S Hub,
+// Đọc địa chỉ đang chạy (socin-studio/run.json) và mã khoá (socin-studio/mcp.json) trong thư mục làm việc của S Hub,
 // nên cấu hình của client không chứa mã khoá. Không phụ thuộc thư viện ngoài.
 const fs = require('fs');
 const path = require('path');
@@ -13,8 +13,8 @@ function workspace() {
 }
 function target(ws = workspace()) {
   try {
-    const run = JSON.parse(fs.readFileSync(path.join(ws, 'socin-chat', 'run.json'), 'utf8'));
-    const cfg = JSON.parse(fs.readFileSync(path.join(ws, 'socin-chat', 'mcp.json'), 'utf8'));
+    const run = JSON.parse(fs.readFileSync(path.join(ws, 'socin-studio', 'run.json'), 'utf8'));
+    const cfg = JSON.parse(fs.readFileSync(path.join(ws, 'socin-studio', 'mcp.json'), 'utf8'));
     if (typeof run.url !== 'string' || !/^http:\/\/127\.0\.0\.1:\d+\/mcp$/.test(run.url) || typeof cfg.token !== 'string' || !cfg.token) return null;
     return { url: run.url, token: cfg.token };
   } catch { return null; }
