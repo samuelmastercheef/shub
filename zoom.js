@@ -15,6 +15,7 @@ module.exports = function init({ WS, cfg, json, body }) {
   const DEF = { useLink: true, socinUrl: '', token: '', workerId: 'shub-mac', concurrency: 1, rejoinMax: 0, chromePath: '', workerDir: '', autoStart: false, autoRestart: true };
   const getSet = () => ({ ...DEF, ...rj(SETF, {}) });
   const saveSet = (s) => { fs.writeFileSync(SETF + '.tmp', JSON.stringify(s, null, 2), { mode: 0o600 }); fs.renameSync(SETF + '.tmp', SETF); fs.chmodSync(SETF, 0o600); };
+  { const s = rj(SETF, null); if (s && /^https?:\/\/social\.sprime\.net\/?$/i.test(s.socinUrl || '')) { s.socinUrl = 'https://app.socin.org'; try { saveSet(s); } catch {} } } // tên miền cũ
   const wdir = (s = getSet()) => s.workerDir ? s.workerDir.replace(/^~(?=$|\/)/, require('os').homedir()) : path.join(SRC, 'zoom-worker');
   const has = (bin) => spawnSync('which', [bin]).status === 0;
 

@@ -23,6 +23,13 @@ Mở ở thanh trái Socin Studio → **Socin Code** (`/code.html`). Chọn mộ
 - Model: dùng chung nút Model của Studio (AI Socin hoặc Ollama trên máy, lời nhắc riêng cho lập trình). Dữ liệu ở `<workspace>/socin-studio/code*.json`, bản lưu hoàn tác ở `code-snaps/`.
 - Test: `node codetest.js`.
 
+### Flow và Agent (Socin Studio)
+- Menu **Flow**: thiết kế luồng công việc kéo thả, khối tròn nối đường chấm. Bước: Bắt đầu (chạy tay hoặc hằng ngày lúc HH:MM), Hỏi AI, Agent, Lệnh / app (mọi lệnh S Hub, Socin, MCP), Điều kiện (chứa chữ hoặc hỏi AI Có/Không), Chờ duyệt, Kết quả. Bấm ＋ cạnh một bước để thêm và nối bước tiếp. Biến `{{input}}` và `{{Tên bước}}`. Có 3 mẫu và nút "AI thiết kế" từ mô tả.
+- Menu **Agent**: tên, vai trò, hướng dẫn, model (Tự động / AI Socin / Trên máy), mức quyền, lệnh được phép, dự án làm ngữ cảnh, flow được chạy. "AI tạo agent" từ mô tả nhu cầu. Kéo agent và kết nối (S Hub, Socin, máy chủ MCP) từ cột trái lên flow; thả kết nối lên bước Agent để cho agent dùng.
+- An toàn: lệnh thay đổi lớn (`files`, `paid`) trong flow hay agent luôn dừng chờ bấm Cho phép; bước Chờ duyệt dừng chờ Duyệt / Từ chối. Quyền của flow/agent không vượt mức đã đặt.
+- Trợ lý chat (và AI khác qua cổng MCP) có thêm lệnh `list_flows`, `run_flow`, `list_agents`, `ask_agent`.
+- Dữ liệu ở `<workspace>/socin-studio/flows/`, `agents.json`, `runs.json`. Mã: `socinflow.js`, `public/flowcore.js`, `public/flowui.*`. Test: `node flowtest.js`.
+
 ## Chạy
 1. Cần Node 18+ và git.
 2. `cp config.example.json config.json`, điền `githubToken` (hoặc chạy `gh auth login`).
