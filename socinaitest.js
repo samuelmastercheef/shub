@@ -39,7 +39,7 @@ const req = (p, o, headers = {}) => new Promise((res) => { const rq = http.reque
 })();
 
 // ---- Socin giả ----
-let agentSeen = null;
+let proposalSeen = null; let agentSeen = null;
 const socin = http.createServer((q, r) => {
   const j = (c, o) => { r.writeHead(c, { 'Content-Type': 'application/json' }); r.end(JSON.stringify(o)); };
   if (q.headers.authorization !== 'Bearer ' + SPCR) return j(401, { error: 'unauthorized' });
@@ -47,6 +47,9 @@ const socin = http.createServer((q, r) => {
     if (q.url === '/api/integration/creator/me') return j(200, { name: 'Lucid', admin: true, owner: true, tenant: 'Socin' });
     if (q.url === '/api/integration/creator/ai/info') return j(200, { enabled: true, provider: 'anthropic', provider_label: 'Claude (Anthropic)', model: 'claude-sonnet-5-5', source: 'main' });
     if (q.url === '/api/integration/creator/plugins') return j(200, { version: 1, plugins: [{ id: 'sdraw', name: 'S Draw', icon: '📐', category: 'design', kind: 'mcp-http', url: 'auto', needsSocin: false, offline: true, description: 'x' }, { id: 'socin', name: 'Socin', icon: '🌐', category: 'socin', kind: 'builtin', needsSocin: true, offline: false, description: 'y' }], store: [{ code: 'ai', kind: 'ai', name: 'Gói AI', description: 'Thêm lượt', price_vnd: 100000, recurring: true }], store_url: 'https://app.socin.test/#store' });
+    if (q.url.startsWith('/api/integration/creator/knowledge/search')) return j(200, { hits: [{ doc_id: 'rule.facebook', status: 'ap-dung', text: 'Luật Facebook: AI soạn, người bấm. q=' + new URL(q.url, 'http://x').searchParams.get('q') }] });
+    if (q.url === '/api/integration/creator/knowledge/proposals' && q.method === 'POST') { proposalSeen = JSON.parse(b); return j(201, { id: 'p1', doc_id: 'playbook.thu', status: 'pending' }); }
+    if (q.url === '/api/integration/creator/knowledge') return j(200, { hash: 'h1', brief: '# Luật cốt lõi\n1. Tiếng Việt.' });
     if (q.url === '/api/integration/creator/accounts') return j(200, { accounts: [{ id: 'a1', platform: 'tiktok', display_name: 'TikTok A' }] });
     if (q.url === '/api/integration/creator/ai/agent') { agentSeen = JSON.parse(b); return j(200, { content: [{ type: 'text', text: 'Chào từ AI Socin' }], provider: 'anthropic', model: 'claude-sonnet-5-5' }); }
     j(404, {});
@@ -103,6 +106,10 @@ socin.listen(0, () => fakeMcp.listen(0, async () => {
     tools = (await req('/api/ai/tools')).j.tools.map((t) => t.name);
     ok(tools.includes('socin_accounts') && tools.includes('socin_create_draft'), 'lệnh Socin hiện sau khi đăng nhập');
     ok(/TikTok A/.test((await req('/api/ai/call', { name: 'socin_accounts', input: {} })).j.text), 'lệnh Socin gọi API Socin bằng khoá S Creator');
+    ok(/AI soạn, người bấm\. q=đăng nhóm/.test((await req('/api/ai/call', { name: 'knowledge_search', input: { q: 'đăng nhóm' } })).j.text), 'tra kho tri thức Socin');
+    ok((await req('/api/ai/call', { name: 'knowledge_propose', input: { type: 'playbook', title: 'Thử', summary: 'Một quy trình thử.', body: '## Bước\nLàm thử.' } })).j.isError && !proposalSeen, 'đề xuất tri thức phải hỏi trước');
+    const kp = await req('/api/ai/call', { name: 'knowledge_propose', input: { type: 'playbook', title: 'Thử', summary: 'Một quy trình thử.', body: '## Bước\nLàm thử.' }, confirmed: true });
+    ok(!kp.j.isError && /hàng chờ/.test(kp.j.text) && proposalSeen.source === 'studio' && proposalSeen.title === 'Thử', 'đề xuất tri thức gửi lên Socin sau khi đồng ý');
     const ag = await req('/api/ai/socin', { messages: [{ role: 'user', content: [{ type: 'text', text: 'chào' }] }], tools: [{ name: 'hub_status', description: 'x', input_schema: { type: 'object' } }], context: 'Dự án: A' });
     ok(ag.j.ok && ag.j.content[0].text === 'Chào từ AI Socin' && agentSeen.tools[0].name === 'hub_status' && agentSeen.context === 'Dự án: A', 'AI Socin: gửi lịch sử + lệnh + ngữ cảnh, nhận khối trả lời');
     const pl = (await req('/api/ai/plugins')).j;
